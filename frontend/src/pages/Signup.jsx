@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import "../styles/Login.css";
 import { useAuth } from "../context/AuthContext";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -18,42 +21,37 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    // Validate password strength
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
-      return;
-    }
-
     setIsLoading(true);
+
     try {
-      // Prepare user data for registration
-      const userData = {
+      // Validate passwords match
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+
+      // Validate password length
+      if (formData.password.length < 6) {
+        toast.error("Password must be at least 6 characters long");
+        return;
+      }
+
+      // Register the user
+      await register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         role: formData.role,
-      };
+      });
 
-      // Call the registration API
-      await register(userData);
+      // Automatically log in the user
+      await login(formData.email, formData.password, formData.role);
 
-      // Show success message
-      toast.success(
-        "Registration successful! Please log in with your credentials."
-      );
-
-      // Redirect to login page on successful registration
-      navigate("/login");
+      toast.success("Registration successful! Welcome to your dashboard.");
+      navigate("/dashboard");
     } catch (error) {
-      console.error("Registration failed:", error);
-      toast.error(error.message || "Registration failed. Please try again.");
+      console.error("Registration error:", error);
+      toast.error(error.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -65,6 +63,14 @@ const Signup = () => {
       ...prevState,
       [name]: value,
     }));
+  };
+
+  const togglePasswordVisibility = (field) => {
+    if (field === "password") {
+      setShowPassword(!showPassword);
+    } else {
+      setShowConfirmPassword(!showConfirmPassword);
+    }
   };
 
   return (
@@ -124,17 +130,30 @@ const Signup = () => {
               >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => togglePasswordVisibility("password")}
+                >
+                  {showPassword ? (
+                    <FaEye className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label
@@ -143,17 +162,30 @@ const Signup = () => {
               >
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => togglePasswordVisibility("confirm")}
+                >
+                  {showConfirmPassword ? (
+                    <FaEye className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label

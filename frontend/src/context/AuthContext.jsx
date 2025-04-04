@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Error loading user:", err);
         setError("Failed to load user data");
-        toast.error("Failed to load user data");
       } finally {
         setLoading(false);
       }
@@ -51,7 +50,6 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const errorMessage = err.message || "Login failed";
       setError(errorMessage);
-      toast.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -73,7 +71,6 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const errorMessage = err.message || "Registration failed";
       setError(errorMessage);
-      toast.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);

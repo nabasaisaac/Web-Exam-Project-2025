@@ -1,73 +1,71 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import "../styles/Login.css";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, error: authError } = useAuth();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "manager",
+    role: "babysitter",
     rememberMe: false,
   });
 
-  // Check for saved credentials on component mount
   useEffect(() => {
+    // Check for saved credentials
     const savedEmail = localStorage.getItem("userEmail");
+    const savedPassword = localStorage.getItem("userPassword");
     const savedRole = localStorage.getItem("userRole");
-    if (savedEmail && savedRole) {
+    const savedRememberMe = localStorage.getItem("rememberMe") === "true";
+
+    if (savedEmail && savedPassword && savedRole && savedRememberMe) {
       setFormData((prev) => ({
         ...prev,
         email: savedEmail,
+        password: savedPassword,
         role: savedRole,
         rememberMe: true,
       }));
     }
 
-    // Check for success message from registration
+    // Show success message if redirected from registration
     if (location.state?.message) {
       toast.success(location.state.message);
     }
   }, [location]);
-
-  // Update error state when auth error changes
-  useEffect(() => {
-    if (authError) {
-      toast.error(authError);
-    }
-  }, [authError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Call the login function from AuthContext
-      const { email, password, role } = formData;
-      await login(email, password, role);
+      await login(formData.email, formData.password, formData.role);
 
-      // If remember me is checked, save credentials
+      // Save credentials if remember me is checked
       if (formData.rememberMe) {
         localStorage.setItem("userEmail", formData.email);
+        localStorage.setItem("userPassword", formData.password);
         localStorage.setItem("userRole", formData.role);
+        localStorage.setItem("rememberMe", "true");
       } else {
         localStorage.removeItem("userEmail");
+        localStorage.removeItem("userPassword");
         localStorage.removeItem("userRole");
+        localStorage.removeItem("rememberMe");
       }
 
-      // Show success message
-      toast.success("Login successful! Welcome back.");
-
-      // Redirect to dashboard on successful login
+      toast.success("Login successful!");
       navigate("/dashboard");
     } catch (error) {
-      console.error("Login failed:", error);
-      toast.error(error.message || "Invalid credentials. Please try again.");
+      console.error("Login error:", error);
+      // Error toast is handled in the AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -75,14 +73,14 @@ const Login = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
+    setFormData((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSignUp = () => {
-    navigate("/signup");
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -90,10 +88,10 @@ const Login = () => {
       <div className="login-content">
         <div className="text-center mb-8">
           <h2 className="login-title text-3xl font-extrabold mb-2">
-            Welcome to Daystar Daycare
+            Welcome Back
           </h2>
           <p className="login-subtitle text-sm">
-            Please sign in to your account
+            Sign in to your Daystar Daycare account
           </p>
         </div>
 
@@ -125,17 +123,31 @@ const Login = () => {
               >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? (
+                    <FaEye className="h-5 w-5 text-gray-400" />
+                    
+                  ) : (
+                    <FaEyeSlash className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label
@@ -153,8 +165,8 @@ const Login = () => {
                 onChange={handleChange}
                 disabled={isLoading}
               >
-                <option value="manager">Manager</option>
                 <option value="babysitter">Babysitter</option>
+                <option value="manager">Manager</option>
               </select>
             </div>
           </div>
@@ -162,7 +174,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
-                id="remember-me"
+                id="rememberMe"
                 name="rememberMe"
                 type="checkbox"
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
@@ -171,20 +183,11 @@ const Login = () => {
                 disabled={isLoading}
               />
               <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-700"
+                htmlFor="rememberMe"
+                className="ml-2 block text-sm text-gray-900"
               >
                 Remember me
               </label>
-            </div>
-
-            <div className="text-sm">
-              <a
-                href="#"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Forgot your password?
-              </a>
             </div>
           </div>
 
@@ -227,14 +230,12 @@ const Login = () => {
               <span className="text-sm text-gray-600">
                 Don't have an account?{" "}
               </span>
-              <button
-                type="button"
-                onClick={handleSignUp}
+              <Link
+                to="/signup"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
-                disabled={isLoading}
               >
                 Sign up
-              </button>
+              </Link>
             </div>
           </div>
         </form>

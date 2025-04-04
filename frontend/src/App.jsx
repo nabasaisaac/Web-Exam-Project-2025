@@ -6,8 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -87,18 +86,6 @@ function App() {
             />
           </Route>
         </Routes>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
       </Router>
     </AuthProvider>
   );
