@@ -8,7 +8,7 @@ const {
   createUser,
   updateUserLastLogin,
 } = require("../models/User");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const { auth } = require("../middleware/auth");
 
 // Register a new user
@@ -71,72 +71,49 @@ router.post(
 );
 
 // Login user
-router.post(
-  "/login",
-  [
-    body("email").trim().notEmpty().withMessage("Email is required"),
-    body("password").notEmpty().withMessage("Password is required"),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
 
-      const { email, password } = req.body;
-      console.log("Attempting login for email:", email);
-
-      // Find user by email
-      const user = await findUserByEmail(email);
-      console.log("User found:", user ? "Yes" : "No");
-
-      if (!user) {
-        console.log("User not found in database");
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      if (!user.is_active) {
-        console.log("User account is inactive");
-        return res.status(401).json({ message: "Account is inactive" });
-      }
-
-      // Check password
-      console.log("Comparing passwords...");
-      const isMatch = await bcrypt.compare(password, user.password);
-      console.log("Password match:", isMatch);
-
-      if (!isMatch) {
-        console.log("Password does not match");
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Update last login
-      await updateUserLastLogin(user.id);
-
-      // Generate token
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-        expiresIn: "24h",
-      });
-
-      res.json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res
-        .status(500)
-        .json({ message: "Error logging in", error: error.message });
+    // Validate required fields
+    if (!email || !password || !role) {
+      return res.status(400).json({ message: "All fields are required" });
     }
+
+    // Find user by email and role
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or role" });
+    }
+
+    // Compare password with hashed password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    // Return user data and token
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error" });
   }
-);
+});
 
 // Get current user
 router.get("/me", auth, async (req, res) => {
