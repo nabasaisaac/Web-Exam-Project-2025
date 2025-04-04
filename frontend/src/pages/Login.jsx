@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 import "../styles/Login.css";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, error: authError } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -24,15 +28,28 @@ const Login = () => {
         rememberMe: true,
       }));
     }
-  }, []);
+
+    // Check for success message from registration
+    if (location.state?.message) {
+      toast.success(location.state.message);
+    }
+  }, [location]);
+
+  // Update error state when auth error changes
+  useEffect(() => {
+    if (authError) {
+      toast.error(authError);
+    }
+  }, [authError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual authentication logic
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
+      // Call the login function from AuthContext
+      const { email, password, role } = formData;
+      await login(email, password, role);
 
       // If remember me is checked, save credentials
       if (formData.rememberMe) {
@@ -43,9 +60,14 @@ const Login = () => {
         localStorage.removeItem("userRole");
       }
 
+      // Show success message
+      toast.success("Login successful! Welcome back.");
+
+      // Redirect to dashboard on successful login
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
+      toast.error(error.message || "Invalid credentials. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +96,7 @@ const Login = () => {
             Please sign in to your account
           </p>
         </div>
+
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>

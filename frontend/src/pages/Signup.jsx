@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import "../styles/Login.css";
+import { useAuth } from "../context/AuthContext";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -15,18 +18,42 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    // Validate password strength
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
     setIsLoading(true);
     try {
-      // TODO: Implement actual registration logic
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
+      // Prepare user data for registration
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      };
+
+      // Call the registration API
+      await register(userData);
+
+      // Show success message
+      toast.success(
+        "Registration successful! Please log in with your credentials."
+      );
+
+      // Redirect to login page on successful registration
       navigate("/login");
     } catch (error) {
       console.error("Registration failed:", error);
+      toast.error(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -49,6 +76,7 @@ const Signup = () => {
           </h2>
           <p className="login-subtitle text-sm">Join Daystar Daycare today</p>
         </div>
+
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
