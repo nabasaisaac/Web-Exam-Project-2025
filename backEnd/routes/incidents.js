@@ -74,12 +74,10 @@ router.post(
         incident,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          message: "Error creating incident report",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Error creating incident report",
+        error: error.message,
+      });
     }
   }
 );
@@ -123,12 +121,10 @@ router.put(
         incident: updatedIncident,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          message: "Error updating incident report",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Error updating incident report",
+        error: error.message,
+      });
     }
   }
 );
@@ -165,12 +161,10 @@ router.get("/", auth, async (req, res) => {
 
     res.json(incidents);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching incident reports",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching incident reports",
+      error: error.message,
+    });
   }
 });
 
@@ -187,12 +181,10 @@ router.get("/:id", auth, async (req, res) => {
 
     res.json(incident);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error fetching incident report",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error fetching incident report",
+      error: error.message,
+    });
   }
 });
 
@@ -252,12 +244,10 @@ router.get("/summary", [auth, authorize("manager")], async (req, res) => {
 
     res.json(summary);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error generating incident summary",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error generating incident summary",
+      error: error.message,
+    });
   }
 });
 

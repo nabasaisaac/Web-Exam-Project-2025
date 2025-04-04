@@ -1,66 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
-const Login = () => {
+const Signup = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     password: "",
-    role: "manager",
-    rememberMe: false,
+    confirmPassword: "",
+    role: "babysitter",
   });
-
-  // Check for saved credentials on component mount
-  useEffect(() => {
-    const savedEmail = localStorage.getItem("userEmail");
-    const savedRole = localStorage.getItem("userRole");
-    if (savedEmail && savedRole) {
-      setFormData((prev) => ({
-        ...prev,
-        email: savedEmail,
-        role: savedRole,
-        rememberMe: true,
-      }));
-    }
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
     setIsLoading(true);
-
     try {
-      // TODO: Implement actual authentication logic
+      // TODO: Implement actual registration logic
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
-
-      // If remember me is checked, save credentials
-      if (formData.rememberMe) {
-        localStorage.setItem("userEmail", formData.email);
-        localStorage.setItem("userRole", formData.role);
-      } else {
-        localStorage.removeItem("userEmail");
-        localStorage.removeItem("userRole");
-      }
-
-      navigate("/dashboard");
+      navigate("/login");
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Registration failed:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prevState) => ({
       ...prevState,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
-  };
-
-  const handleSignUp = () => {
-    navigate("/signup");
   };
 
   return (
@@ -68,14 +45,31 @@ const Login = () => {
       <div className="login-content">
         <div className="text-center mb-8">
           <h2 className="login-title text-3xl font-extrabold mb-2">
-            Welcome to Daystar Daycare
+            Create an Account
           </h2>
-          <p className="login-subtitle text-sm">
-            Please sign in to your account
-          </p>
+          <p className="login-subtitle text-sm">Join Daystar Daycare today</p>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Username
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
+                placeholder="Choose a username"
+                value={formData.username}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
             <div>
               <label
                 htmlFor="email"
@@ -108,8 +102,27 @@ const Login = () => {
                 type="password"
                 required
                 className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
-                placeholder="Enter your password"
+                placeholder="Create a password"
                 value={formData.password}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                className="login-input appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
                 onChange={handleChange}
                 disabled={isLoading}
               />
@@ -119,7 +132,7 @@ const Login = () => {
                 htmlFor="role"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Login as
+                Register as
               </label>
               <select
                 id="role"
@@ -130,38 +143,9 @@ const Login = () => {
                 onChange={handleChange}
                 disabled={isLoading}
               >
-                <option value="manager">Manager</option>
                 <option value="babysitter">Babysitter</option>
+                <option value="manager">Manager</option>
               </select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="rememberMe"
-                type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                checked={formData.rememberMe}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-700"
-              >
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a
-                href="#"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Forgot your password?
-              </a>
             </div>
           </div>
 
@@ -193,24 +177,24 @@ const Login = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Signing in...
+                  Creating Account...
                 </div>
               ) : (
-                "Sign in"
+                "Create Account"
               )}
             </button>
 
             <div className="text-center">
               <span className="text-sm text-gray-600">
-                Don't have an account?{" "}
+                Already have an account?{" "}
               </span>
               <button
                 type="button"
-                onClick={handleSignUp}
+                onClick={() => navigate("/login")}
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
                 disabled={isLoading}
               >
-                Sign up
+                Sign in
               </button>
             </div>
           </div>
@@ -220,4 +204,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
