@@ -80,16 +80,21 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Find user by email and role
+    // Find user by email
     const user = await findUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or role" });
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Check if user role matches
+    if (user.role !== role) {
+      return res.status(401).json({ message: "Invalid role for this account" });
     }
 
     // Compare password with hashed password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // Generate JWT token
