@@ -2,7 +2,13 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
-const User = require("../models/User");
+const {
+  findUserByUsername,
+  findUserByEmail,
+  createUser,
+  updateUserLastLogin,
+} = require("../models/User");
+const bcrypt = require("bcryptjs");
 const { auth } = require("../middleware/auth");
 
 // Register a new user
@@ -25,20 +31,23 @@ router.post(
 
       const { username, email, password, role } = req.body;
 
-      // Check if user already exists
-      const existingUser = await User.findOne({
-        $or: [{ username }, { email }],
-      });
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
+      // Check if user already exists by email only
+      const existingUserByEmail = await findUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: "Email already registered" });
       }
 
-      // Create new user
-      const user = new User({ username, email, password, role });
-      await user.save();
+      // Create new user (password will be hashed in the model)
+      const userId = await createUser({
+        username,
+        email,
+        password,
+        role,
+        isActive: true,
+      });
 
       // Generate token
-      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
         expiresIn: "24h",
       });
 
@@ -46,13 +55,14 @@ router.post(
         message: "User registered successfully",
         token,
         user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
+          id: userId,
+          username,
+          email,
+          role,
         },
       });
     } catch (error) {
+      console.error("Registration error:", error);
       res
         .status(500)
         .json({ message: "Error registering user", error: error.message });
@@ -64,7 +74,7 @@ router.post(
 router.post(
   "/login",
   [
-    body("username").trim().notEmpty().withMessage("Username is required"),
+    body("email").trim().notEmpty().withMessage("Email is required"),
     body("password").notEmpty().withMessage("Password is required"),
   ],
   async (req, res) => {
@@ -74,26 +84,38 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { username, password } = req.body;
+      const { email, password } = req.body;
+      console.log("Attempting login for email:", email);
 
-      // Find user
-      const user = await User.findOne({ username, isActive: true });
+      // Find user by email
+      const user = await findUserByEmail(email);
+      console.log("User found:", user ? "Yes" : "No");
+
       if (!user) {
+        console.log("User not found in database");
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      if (!user.is_active) {
+        console.log("User account is inactive");
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
       // Check password
-      const isMatch = await user.comparePassword(password);
+      console.log("Comparing passwords...");
+      const isMatch = await bcrypt.compare(password, user.password);
+      console.log("Password match:", isMatch);
+
       if (!isMatch) {
+        console.log("Password does not match");
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       // Update last login
-      user.lastLogin = new Date();
-      await user.save();
+      await updateUserLastLogin(user.id);
 
       // Generate token
-      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
         expiresIn: "24h",
       });
 
@@ -101,13 +123,14 @@ router.post(
         message: "Login successful",
         token,
         user: {
-          id: user._id,
+          id: user.id,
           username: user.username,
           email: user.email,
           role: user.role,
         },
       });
     } catch (error) {
+      console.error("Login error:", error);
       res
         .status(500)
         .json({ message: "Error logging in", error: error.message });
@@ -118,9 +141,14 @@ router.post(
 // Get current user
 router.get("/me", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
-    res.json(user);
+    const user = await findUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
   } catch (error) {
+    console.error("Get user error:", error);
     res
       .status(500)
       .json({ message: "Error fetching user", error: error.message });
