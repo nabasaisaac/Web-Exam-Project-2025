@@ -1,12 +1,12 @@
 CREATE DATABASE IF NOT EXISTS daystar_daycare;
 USE daystar_daycare;
+-- drop DATABASE daystar_daycare;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
-  role ENUM('manager', 'babysitter') NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   last_login DATETIME,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS babysitters (
   next_of_kin_name VARCHAR(100) NOT NULL,
   next_of_kin_phone VARCHAR(20) NOT NULL,
   next_of_kin_relationship VARCHAR(50) NOT NULL,
+  password VARCHAR(255) NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
+  last_login DATETIME,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -100,5 +102,5 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ); 
 
-SELECT * FROM users;
+SELECT * FROM babysitters;
 use daystar_daycare;
