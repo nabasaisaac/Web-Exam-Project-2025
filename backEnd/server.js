@@ -1,37 +1,37 @@
-// const express = require("express");
-// const cors = require("cors");
-// const morgan = require("morgan");
-// require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+require("dotenv").config();
 
-// const pool = require("./config/database");
+const pool = require("./config/database");
 
-// const app = express();
+const app = express();
 
-// // Middleware
-// app.use(cors());
-// app.use(express.json());
-// app.use(morgan("dev"));
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(morgan("dev"));
 
-// // Routes
-// app.use("/api/auth", require("./routes/auth"));
-// app.use("/api/babysitters", require("./routes/babysitters"));
-// app.use("/api/children", require("./routes/children"));
-// app.use("/api/financial", require("./routes/finance"));
-// app.use("/api/attendance", require("./routes/attendance"));
-// app.use("/api/incidents", require("./routes/incidents"));
-// app.use("/api/notifications", require("./routes/notifications"));
+// Routes
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/babysitters", require("./routes/babysitters"));
+app.use("/api/children", require("./routes/children"));
+app.use("/api/financial", require("./routes/finance"));
+app.use("/api/attendance", require("./routes/attendance"));
+app.use("/api/incidents", require("./routes/incidents"));
+app.use("/api/notifications", require("./routes/notifications"));
 
-// // Error handling middleware
-// app.use((err, req, res, next) => {
-//   console.error(err.stack);
-//   res
-//     .status(500)
-//     .json({ message: "Something went wrong!", error: err.message });
-// });
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res
+    .status(500)
+    .json({ message: "Something went wrong!", error: err.message });
+});
 
-// const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-// // Test database connection
+// Test database connection
 pool
   .getConnection()
   .then((connection) => {
