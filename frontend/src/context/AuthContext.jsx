@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
 import authService from "../services/authService";
+import axios from "axios";
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -61,19 +62,43 @@ export const AuthProvider = ({ children }) => {
    * @param {Object} userData - User registration data
    * @returns {Promise} - Registration result
    */
-  const register = async (userData) => {
-    setLoading(true);
-    setError(null);
-
+  const register = async (
+    firstName,
+    lastName,
+    email,
+    password,
+    role,
+    additionalData
+  ) => {
     try {
-      const data = await authService.register(userData);
-      return data;
-    } catch (err) {
-      const errorMessage = err.message || "Registration failed";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+      const response = await axios.post(`${API_URL}/auth/register`, {
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        additionalData: {
+          ...additionalData,
+          // For babysitters, include all required fields
+          ...(role === "babysitter" && {
+            nin: additionalData.nin,
+            dateOfBirth: additionalData.dateOfBirth,
+            nextOfKin: {
+              name: additionalData.nextOfKinName,
+              phone: additionalData.nextOfKinPhone,
+              relationship: additionalData.nextOfKinRelationship,
+            },
+          }),
+        },
+      });
+
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        setUser(response.data.user);
+        return response.data;
+      }
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Registration failed");
     }
   };
 

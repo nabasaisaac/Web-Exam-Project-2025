@@ -35,7 +35,6 @@ const Signup = () => {
     nextOfKinRelationship: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false,
   });
 
   const calculateAge = (dateOfBirth) => {
@@ -78,12 +77,6 @@ const Signup = () => {
       return;
     }
 
-    if (!formData.agreeToTerms) {
-      toast.error("You must agree to the terms and conditions");
-      setIsLoading(false);
-      return;
-    }
-
     try {
       await register(
         formData.firstName,
@@ -107,6 +100,7 @@ const Signup = () => {
         state: { message: "Registration successful! Please log in." },
       });
     } catch (error) {
+      console.log(formData);
       console.error("Registration error:", error);
       toast.error(error.message || "Registration failed");
     } finally {
@@ -453,12 +447,12 @@ const Signup = () => {
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                       onClick={() => togglePasswordVisibility("confirm")}
                     >
-                      {showPassword ? <FaEye /> : <FaEyeSlash />}
+                      {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center mt-6">
+                {/* <div className="flex items-center mt-6">
                   <label className="inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -472,7 +466,7 @@ const Signup = () => {
                       I agree to the terms and conditions
                     </span>
                   </label>
-                </div>
+                </div> */}
               </div>
 
               {/* Submit Button */}
