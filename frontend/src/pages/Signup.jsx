@@ -77,6 +77,28 @@ const Signup = () => {
       return;
     }
 
+    // First validate all required fields are present
+    if (
+      !formData.nextOfKinName ||
+      !formData.nextOfKinPhone ||
+      !formData.nextOfKinRelationship
+    ) {
+      toast.error("Please fill in all next of kin information");
+      setIsLoading(false);
+      return;
+    }
+
+    // First validate all required fields are present
+    if (
+      !formData.nextOfKinName ||
+      !formData.nextOfKinPhone ||
+      !formData.nextOfKinRelationship
+    ) {
+      toast.error("Please fill in all next of kin information");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await register(
         formData.firstName,
@@ -95,7 +117,6 @@ const Signup = () => {
           },
         }
       );
-      toast.success("Registration successful! Please log in.");
       navigate("/login", {
         state: { message: "Registration successful! Please log in." },
       });

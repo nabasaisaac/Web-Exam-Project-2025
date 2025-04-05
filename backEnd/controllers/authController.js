@@ -166,7 +166,7 @@ const login = async (req, res) => {
       );
 
       if (babysitters.length === 0) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
 
       const babysitter = babysitters[0];
@@ -177,7 +177,7 @@ const login = async (req, res) => {
         babysitter.password
       );
       if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
 
       // Update last login
@@ -209,7 +209,7 @@ const login = async (req, res) => {
       ]);
 
       if (users.length === 0) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
 
       const user = users[0];
@@ -217,7 +217,7 @@ const login = async (req, res) => {
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid username or password" });
       }
 
       // Update last login
