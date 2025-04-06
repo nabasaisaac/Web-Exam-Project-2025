@@ -1,9 +1,20 @@
+/**
+ * Sidebar Component
+ * 
+ * This component renders the left sidebar navigation of the application.
+ * It displays a list of navigation items with icons and highlights
+ * the currently active route. The sidebar is hidden on mobile devices
+ * and becomes visible on medium and larger screens.
+ */
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {
+  // Get current location for active route highlighting
   const location = useLocation();
 
+  // Navigation items configuration with names, routes, and SVG icons
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { name: 'Children', href: '/children', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
@@ -13,10 +24,15 @@ const Sidebar = () => {
   ];
 
   return (
+    // Sidebar container - hidden on mobile, visible on md and up
     <div className="hidden md:flex md:flex-shrink-0">
+      {/* Fixed width sidebar */}
       <div className="flex flex-col w-64">
+        {/* White background with border */}
         <div className="flex flex-col h-0 flex-1 bg-white border-r border-gray-200">
+          {/* Scrollable content area */}
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+            {/* Logo section */}
             <div className="flex items-center flex-shrink-0 px-4">
               <img
                 className="h-8 w-auto"
@@ -24,8 +40,11 @@ const Sidebar = () => {
                 alt="Daystar Daycare"
               />
             </div>
+            {/* Navigation links */}
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
+              {/* Map through navigation items */}
               {navigation.map((item) => {
+                // Check if current route matches this item
                 const isActive = location.pathname === item.href;
                 return (
                   <Link
@@ -37,6 +56,7 @@ const Sidebar = () => {
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
                   >
+                    {/* Navigation item icon */}
                     <svg
                       className={`${
                         isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
