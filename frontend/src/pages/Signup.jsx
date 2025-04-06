@@ -117,9 +117,8 @@ const Signup = () => {
           },
         }
       );
-      navigate("/login", {
-        state: { message: "Registration successful! Please log in." },
-      });
+      toast.success("Registration successful! Please log in.");
+      navigate("/login");
     } catch (error) {
       console.log(formData);
       console.error("Registration error:", error);
