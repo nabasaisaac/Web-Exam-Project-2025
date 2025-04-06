@@ -1,11 +1,23 @@
+/**
+ * Navbar Component
+ * 
+ * This component renders the top navigation bar of the application.
+ * It includes the application logo, main navigation links,
+ * and user-related actions (notifications and profile).
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
+    // Navigation bar with white background and shadow
     <nav className="bg-white shadow-lg">
+      {/* Container with max width and padding */}
       <div className="max-w-7xl mx-auto px-4">
+        {/* Flex container for logo and navigation items */}
         <div className="flex justify-between h-16">
+          {/* Left side - Logo */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="text-xl font-bold text-indigo-600">
@@ -14,9 +26,12 @@ const Navbar = () => {
             </div>
           </div>
           
+          {/* Right side - Navigation links and user menu */}
           <div className="flex items-center">
+            {/* Main navigation links - hidden on mobile */}
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
+                {/* Navigation links with hover effects */}
                 <Link to="/dashboard" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
                   Dashboard
                 </Link>
@@ -32,7 +47,9 @@ const Navbar = () => {
               </div>
             </div>
             
+            {/* User menu section */}
             <div className="ml-4 flex items-center md:ml-6">
+              {/* Notifications button */}
               <button className="p-1 rounded-full text-gray-600 hover:text-indigo-600 focus:outline-none">
                 <span className="sr-only">View notifications</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,6 +57,7 @@ const Navbar = () => {
                 </svg>
               </button>
               
+              {/* User profile button */}
               <div className="ml-3 relative">
                 <div>
                   <button className="max-w-xs bg-gray-800 rounded-full flex items-center text-sm focus:outline-none">
