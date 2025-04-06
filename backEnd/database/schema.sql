@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS babysitters (
   next_of_kin_name VARCHAR(100) NOT NULL,
   next_of_kin_phone VARCHAR(20) NOT NULL,
   next_of_kin_relationship VARCHAR(50) NOT NULL,
-  password VARCHAR(55) NOT NULL,
+  password VARCHAR(255) NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   last_login DATETIME,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
