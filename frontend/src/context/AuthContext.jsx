@@ -5,7 +5,7 @@ import axios from "axios";
 
 // Create the authentication context
 const AuthContext = createContext();
-
+const API_URL = "http://localhost:5000/api";
 /**
  * Authentication provider component
  * @param {Object} props - Component props
@@ -79,17 +79,12 @@ export const AuthProvider = ({ children }) => {
         role,
         additionalData: {
           ...additionalData,
-          // For babysitters, include all required fields
-          ...(role === "babysitter" && {
-            nin: additionalData.nin,
-            dateOfBirth: additionalData.dateOfBirth,
-            nextOfKin: {
-              name: additionalData.nextOfKinName,
-              phone: additionalData.nextOfKinPhone,
-              relationship: additionalData.nextOfKinRelationship,
-            },
-          }),
-        },
+          nextOfKin: {
+            name: additionalData.nextOfKin.name,
+            phone: additionalData.nextOfKin.phone,
+            relationship: additionalData.nextOfKin.relationship
+          }
+        }
       });
 
       if (response.data.token) {

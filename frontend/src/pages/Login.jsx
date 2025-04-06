@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import TransitionalBackground from "../components/TransitionalBackground";
-// import "../styles/Auth.css";
+import "../styles/Auth.css";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -35,12 +34,7 @@ const Login = () => {
         rememberMe: true,
       }));
     }
-
-    // Show success message if redirected from registration
-    if (location.state?.message) {
-      toast.success(location.state.message);
-    }
-  }, [location]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -166,7 +160,7 @@ const Login = () => {
                       : "translate-x-28"
                   }`}
                 />
-                <div className="relative flex h-full ">
+                <div className="relative flex h-full">
                   <label className="flex-1 relative">
                     <input
                       type="radio"
