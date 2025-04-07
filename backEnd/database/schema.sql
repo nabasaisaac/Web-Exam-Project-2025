@@ -88,19 +88,19 @@ CREATE TABLE IF NOT EXISTS incident_reports (
   FOREIGN KEY (reported_by) REFERENCES users(id)
 );
 
--- CREATE TABLE IF NOT EXISTS notifications (
---   id INT AUTO_INCREMENT PRIMARY KEY,
---   recipient_id INT NOT NULL,
---   recipient_type ENUM('user', 'child') NOT NULL,
---   type ENUM('payment-reminder', 'payment-overdue', 'incident-report', 'attendance-update', 'system-alert') NOT NULL,
---   title VARCHAR(255) NOT NULL,
---   message TEXT NOT NULL,
---   priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
---   status ENUM('pending', 'sent', 'read', 'failed') DEFAULT 'pending',
---   read_at DATETIME,
---   sent_at DATETIME,
---   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- ); 
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipient_id INT NOT NULL,
+  recipient_type ENUM('user', 'child') NOT NULL,
+  type ENUM('payment-reminder', 'payment-overdue', 'incident-report', 'attendance-update', 'system-alert') NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+  status ENUM('pending', 'sent', 'read', 'failed') DEFAULT 'pending',
+  read_at DATETIME,
+  sent_at DATETIME,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
 
 SELECT * FROM babysitters;
 use daystar_daycare;
