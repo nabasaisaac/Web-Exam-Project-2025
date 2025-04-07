@@ -29,20 +29,20 @@ CREATE TABLE IF NOT EXISTS babysitters (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS children (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  full_name VARCHAR(100) NOT NULL,
-  age INT NOT NULL,
-  parent_name VARCHAR(100) NOT NULL,
-  parent_phone VARCHAR(20) NOT NULL,
-  parent_email VARCHAR(100),
-  special_care_needs TEXT,
-  session_type ENUM('half-day', 'full-day') NOT NULL,
-  assigned_babysitter_id INT,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (assigned_babysitter_id) REFERENCES babysitters(id)
-);
+-- CREATE TABLE IF NOT EXISTS children (
+--   id INT AUTO_INCREMENT PRIMARY KEY,
+--   full_name VARCHAR(100) NOT NULL,
+--   age INT NOT NULL,
+--   parent_name VARCHAR(100) NOT NULL,
+--   parent_phone VARCHAR(20) NOT NULL,
+--   parent_email VARCHAR(100),
+--   special_care_needs TEXT,
+--   session_type ENUM('half-day', 'full-day') NOT NULL,
+--   assigned_babysitter_id INT,
+--   is_active BOOLEAN DEFAULT TRUE,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   FOREIGN KEY (assigned_babysitter_id) REFERENCES babysitters(id)
+-- );
 
 CREATE TABLE IF NOT EXISTS attendance (
   id INT AUTO_INCREMENT PRIMARY KEY,
