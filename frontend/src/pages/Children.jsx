@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaTimes } from "react-icons/fa";
 import "../styles/auth.css";
 
 const Children = () => {
@@ -65,7 +66,7 @@ const Children = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Children</h1>
           <button
             onClick={() => setShowRegistrationForm(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent hover:bg-indigo-700 transition"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent hover:bg-indigo-700 transition"
           >
             Register New Child
           </button>
@@ -73,13 +74,21 @@ const Children = () => {
 
         {/* Slide-in Overlay */}
         <div
-          className={`fixed top-0 left-0 w-full h-full bg-black bg-opacity-70 transition-transform duration-500 z-40 ${
+          className={`fixed top-0 left-0 w-full h-full bg-black/70 transition-transform duration-500 z-40 ${
             showRegistrationForm ? "translate-y-0" : "-translate-y-full"
           }`}
         >
           {/* Centered Registration Info Box */}
           <div className="flex items-center justify-center h-full">
-            <div className="bg-white p-8 rounded shadow-lg w-[90%] max-w-md">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-[90%] max-w-md relative">
+              {/* Close Button */}
+              <button
+                onClick={() => setShowRegistrationForm(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 focus:outline-none focus:border-[#4299e1]"
+              >
+                <FaTimes className="text-gray-500" />
+              </button>
+
               <h2 className="text-xl font-semibold mb-4 text-center">
                 Register New Child
               </h2>
@@ -90,7 +99,7 @@ const Children = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="Child's Full Name"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                   required
                 />
                 <input
@@ -99,7 +108,7 @@ const Children = () => {
                   value={formData.age}
                   onChange={handleChange}
                   placeholder="Age"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                   required
                 />
                 <input
@@ -108,7 +117,7 @@ const Children = () => {
                   value={formData.parentName}
                   onChange={handleChange}
                   placeholder="Parent/Guardian Name"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                   required
                 />
                 <input
@@ -117,7 +126,7 @@ const Children = () => {
                   value={formData.parentPhone}
                   onChange={handleChange}
                   placeholder="Parent/Guardian Phone"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                   required
                 />
                 <textarea
@@ -125,29 +134,22 @@ const Children = () => {
                   value={formData.specialNeeds}
                   onChange={handleChange}
                   placeholder="Special Needs"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                   rows="3"
                 />
                 <select
                   name="duration"
                   value={formData.duration}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
                 >
                   <option value="half-day">Half Day</option>
                   <option value="full-day">Full Day</option>
                 </select>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowRegistrationForm(false)}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
-                  >
-                    Cancel
-                  </button>
+                <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
                   >
                     Register
                   </button>
