@@ -107,11 +107,25 @@ async function getChildIncidents(id) {
   return rows;
 }
 
+/**
+ * Finds all children assigned to a specific babysitter
+ * @param {number} babysitterId - The ID of the babysitter
+ * @returns {Promise<Array>} - Array of child objects
+ */
+async function findChildrenByBabysitter(babysitterId) {
+  const [rows] = await pool.execute(
+    "SELECT * FROM children WHERE assigned_babysitter_id = ? AND is_active = TRUE",
+    [babysitterId]
+  );
+  return rows;
+}
+
 // Export all functions
 module.exports = {
   createChild,
   findChildById,
   findAllChildren,
+  findChildrenByBabysitter,
   updateChild,
   deleteChild,
   getChildAttendance,

@@ -1,9 +1,15 @@
-import React, { useState } from "react";
-import { FaTimes } from "react-icons/fa";
+import React, { useState, useContext, useEffect } from "react";
+import { FaTimes, FaBaby } from "react-icons/fa";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { AuthContext } from "../context/AuthContext";
 import "../styles/auth.css";
 
 const Children = () => {
+  const { user } = useContext(AuthContext);
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [children, setChildren] = useState([]);
   const [formData, setFormData] = useState({
     fullName: "",
     age: "",
@@ -19,29 +25,27 @@ const Children = () => {
     parentPhone: "",
   });
 
-  const children = [
-    {
-      id: 1,
-      fullName: "Sarah Johnson",
-      age: 4,
-      parentName: "John Johnson",
-      parentPhone: "+256 701234567",
-      specialNeeds: "None",
-      duration: "full-day",
-      status: "present",
-    },
-    {
-      id: 2,
-      fullName: "Michael Brown",
-      age: 3,
-      parentName: "Mary Brown",
-      parentPhone: "+256 702345678",
-      specialNeeds: "Allergic to peanuts",
-      duration: "half-day",
-      status: "absent",
-    },
-    // Add more sample data as needed
-  ];
+  // Fetch children data when component mounts
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/children?babysitterId=${user.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setChildren(response.data);
+      } catch (error) {
+        console.error("Error fetching children:", error);
+        toast.error("Failed to fetch children data");
+      }
+    };
+
+    fetchChildren();
+  }, [user.id]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,8 +58,9 @@ const Children = () => {
     return re.test(phone);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     // Validate email and phone
     const emailValid = validateEmail(formData.parentEmail);
@@ -66,24 +71,85 @@ const Children = () => {
         parentEmail: !emailValid ? "Please enter a valid email address" : "",
         parentPhone: !phoneValid ? "Please enter a valid phone number" : "",
       });
+      setIsLoading(false);
       return;
     }
 
-    // TODO: Implement actual registration logic
-    setShowRegistrationForm(false);
-    setFormData({
-      fullName: "",
-      age: "",
-      parentName: "",
-      parentEmail: "",
-      parentPhone: "",
-      specialNeeds: "",
-      duration: "full-day",
-    });
-    setErrors({
-      parentEmail: "",
-      parentPhone: "",
-    });
+    const requestData = {
+      fullName: formData.fullName,
+      age: parseInt(formData.age),
+      parentDetails: {
+        fullName: formData.parentName,
+        email: formData.parentEmail,
+        phoneNumber: formData.parentPhone,
+      },
+      specialNeeds: formData.specialNeeds,
+      sessionType: formData.duration,
+      assignedBabysitter: user.id,
+    };
+
+    // to see whats really happening when when i
+    console.log("Sending data:", requestData);
+    console.log("User role:", user.role);
+    console.log("User ID:", user.id);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/children",
+        requestData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      console.log("Response:", response.data);
+      toast.success("Child registered successfully!");
+      setShowRegistrationForm(false);
+      setFormData({
+        fullName: "",
+        age: "",
+        parentName: "",
+        parentEmail: "",
+        parentPhone: "",
+        specialNeeds: "",
+        duration: "full-day",
+      });
+      setErrors({
+        parentEmail: "",
+        parentPhone: "",
+      });
+
+      // Refresh the children list
+      const updatedResponse = await axios.get(
+        `http://localhost:5000/api/children?babysitterId=${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setChildren(updatedResponse.data);
+    } catch (error) {
+      console.error("Error details:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      if (error.response?.data?.errors) {
+        error.response.data.errors.forEach((err) => {
+          toast.error(err.msg);
+        });
+      } else {
+        toast.error(
+          error.response?.data?.message ||
+            "Failed to register child. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -228,10 +294,14 @@ const Children = () => {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none
-                     focus:border-[#4299e1] border-2 border-transparent cursor-pointer"
+                    disabled={isLoading}
+                    className={`px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent ${
+                      isLoading
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-indigo-700"
+                    }`}
                   >
-                    Register
+                    {isLoading ? "Registering..." : "Register"}
                   </button>
                 </div>
               </form>
@@ -241,55 +311,69 @@ const Children = () => {
 
         {/* Children List */}
         <div className="mt-8">
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul className="divide-y divide-gray-200">
-              {children.map((child) => (
-                <li key={child.id}>
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div
-                            className={`h-3 w-3 rounded-full ${
-                              child.status === "present"
-                                ? "bg-green-400"
-                                : "bg-red-400"
-                            }`}
-                          />
+          {children.length === 0 ? (
+            <div className="bg-white shadow overflow-hidden sm:rounded-md p-8 text-center">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <FaBaby className="text-6xl text-indigo-400" />
+                <h3 className="text-xl font-medium text-gray-900">
+                  No Children Registered Yet
+                </h3>
+                <p className="text-gray-500">
+                  Start by registering your first child using the button above.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white shadow overflow-hidden sm:rounded-md">
+              <ul className="divide-y divide-gray-200">
+                {children.map((child) => (
+                  <li key={child.id}>
+                    <div className="px-4 py-4 sm:px-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <div
+                              className={`h-3 w-3 rounded-full ${
+                                child.status === "present"
+                                  ? "bg-green-400"
+                                  : "bg-red-400"
+                              }`}
+                            />
+                          </div>
+                          <div className="ml-4">
+                            <h2 className="text-lg font-medium text-gray-900">
+                              {child.full_name}
+                            </h2>
+                            <p className="text-sm text-gray-500">
+                              Age: {child.age} | Duration: {child.session_type}
+                            </p>
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          <h2 className="text-lg font-medium text-gray-900">
-                            {child.fullName}
-                          </h2>
-                          <p className="text-sm text-gray-500">
-                            Age: {child.age} | Duration: {child.duration}
-                          </p>
+                        <div className="ml-6 flex items-center space-x-4">
+                          <button className="text-indigo-600 hover:text-indigo-900">
+                            Edit
+                          </button>
+                          <button className="text-red-600 hover:text-red-900">
+                            Remove
+                          </button>
                         </div>
                       </div>
-                      <div className="ml-6 flex items-center space-x-4">
-                        <button className="text-indigo-600 hover:text-indigo-900">
-                          Edit
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Parent: {child.parentName} ({child.parentPhone})
-                      </p>
-                      {child.specialNeeds && (
+                      <div className="mt-2">
                         <p className="text-sm text-gray-500">
-                          Special Needs: {child.specialNeeds}
+                          Parent: {child.parent_name} ({child.parent_phone})
                         </p>
-                      )}
+                        {child.special_care_needs && (
+                          <p className="text-sm text-gray-500">
+                            Special Needs: {child.special_care_needs}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
