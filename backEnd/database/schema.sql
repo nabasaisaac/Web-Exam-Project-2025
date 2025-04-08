@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS incident_reports (
   child_id INT NOT NULL,
   reported_by INT NOT NULL,
   date DATE NOT NULL,
-  incident_type ENUM('health', 'behavior', 'accident') NOT NULL,
+  incident_type ENUM('health', 'behavior', 'accident', 'other') NOT NULL,
   description TEXT NOT NULL,
   severity ENUM('low', 'medium', 'high') NOT NULL,
   action_taken TEXT NOT NULL,
