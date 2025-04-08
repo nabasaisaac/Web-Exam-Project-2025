@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const db = require("../config/database");
 
 const auth = async (req, res, next) => {
   try {
@@ -10,7 +10,19 @@ const auth = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ _id: decoded.userId, isActive: true });
+
+    // Check in both users and babysitters tables
+    let [users] = await db.query(
+      "SELECT * FROM users WHERE id = ? AND is_active = 1",
+      [decoded.id]
+    );
+
+    let [babysitters] = await db.query(
+      "SELECT * FROM babysitters WHERE id = ? AND is_active = 1",
+      [decoded.id]
+    );
+
+    const user = users[0] || babysitters[0];
 
     if (!user) {
       throw new Error();
@@ -20,6 +32,7 @@ const auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    console.error("Auth error:", error);
     res.status(401).json({ message: "Please authenticate." });
   }
 };

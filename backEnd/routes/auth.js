@@ -2,12 +2,7 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
-const {
-  findUserByUsername,
-  findUserByEmail,
-  createUser,
-  updateUserLastLogin,
-} = require("../models/User");
+const db = require("../config/database");
 const bcrypt = require("bcrypt");
 const { auth } = require("../middleware/auth");
 const { register, login } = require("../controllers/authController");
@@ -21,12 +16,19 @@ router.post("/login", login);
 // Get current user
 router.get("/me", auth, async (req, res) => {
   try {
-    const user = await findUserById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    // Get user from request (already verified by auth middleware)
+    const user = req.user;
+
+    // Remove sensitive data
     const { password, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
+
+    // Add role information
+    const userData = {
+      ...userWithoutPassword,
+      role: user.role || (user.username ? "manager" : "babysitter"),
+    };
+
+    res.json(userData);
   } catch (error) {
     console.error("Get user error:", error);
     res

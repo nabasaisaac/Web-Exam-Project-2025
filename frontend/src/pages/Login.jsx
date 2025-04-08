@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -14,24 +14,7 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
-
-  useEffect(() => {
-    // Check for saved credentials
-    const savedEmail = localStorage.getItem("userEmail");
-    const savedPassword = localStorage.getItem("userPassword");
-    const savedRememberMe = localStorage.getItem("rememberMe") === "true";
-
-    if (savedEmail && savedPassword && savedRememberMe) {
-      setFormData((prev) => ({
-        ...prev,
-        email: savedEmail,
-        password: savedPassword,
-        rememberMe: true,
-      }));
-    }
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,18 +22,6 @@ const Login = () => {
 
     try {
       await login(formData.email, formData.password);
-
-      // Save credentials if remember me is checked
-      if (formData.rememberMe) {
-        localStorage.setItem("userEmail", formData.email);
-        localStorage.setItem("userPassword", formData.password);
-        localStorage.setItem("rememberMe", "true");
-      } else {
-        localStorage.removeItem("userEmail");
-        localStorage.removeItem("userPassword");
-        localStorage.removeItem("rememberMe");
-      }
-
       toast.success("Login successful!");
       navigate("/dashboard");
     } catch (error) {
@@ -62,10 +33,10 @@ const Login = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -139,24 +110,6 @@ const Login = () => {
                   )}
                 </button>
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                  className="custom-checkbox"
-                  disabled={isLoading}
-                />
-                <span className="ml-2 text-sm font-medium text-gray-700">
-                  Remember me
-                </span>
-              </label>
             </div>
           </div>
 
