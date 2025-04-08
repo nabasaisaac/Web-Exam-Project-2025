@@ -10,9 +10,10 @@ const encodeUserData = (user) => {
   const userData = {
     id: user.id,
     role: user.role,
-    // Only store first letter of firstName and lastName
-    fn: user.firstName ? user.firstName.charAt(0) : '',
-    ln: user.lastName ? user.lastName.charAt(0) : ''
+    firstName: user.firstName || user.first_name,
+    lastName: user.lastName || user.last_name,
+    email: user.email,
+    username: user.username
   };
   return btoa(JSON.stringify(userData));
 };

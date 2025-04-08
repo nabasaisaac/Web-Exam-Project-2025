@@ -42,8 +42,15 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/:username" element={<MainLayout />}>
+            <Route
+              index
+              element={
+                <ProtectedRoute>
+                  <Navigate to="dashboard" replace />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="dashboard"
               element={

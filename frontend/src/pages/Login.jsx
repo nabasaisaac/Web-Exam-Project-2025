@@ -21,9 +21,10 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(formData.email, formData.password);
+      const response = await login(formData.email, formData.password);
       toast.success("Login successful!");
-      navigate("/dashboard");
+      const username = response.user.username || response.user.firstName;
+      navigate(`/${username}/dashboard`);
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message || "Invalid email or password");

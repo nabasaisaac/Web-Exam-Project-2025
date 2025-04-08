@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
   // Load user from localStorage on initial render
   useEffect(() => {
-    const loadUser = () => {
+    const loadUser = async () => {
       try {
         const token = authService.getToken();
         const currentUser = authService.getCurrentUser();
@@ -27,15 +27,17 @@ export const AuthProvider = ({ children }) => {
           // Set the basic user data immediately
           setUser(currentUser);
           
-          // Then try to fetch full user data
-          axios.get(`${API_URL}/auth/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }).then(response => {
+          try {
+            // Then try to fetch full user data
+            const response = await axios.get(`${API_URL}/auth/me`, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            
             // Update with full user data if successful
             setUser(response.data);
-          }).catch(error => {
+          } catch (error) {
             console.error("Error fetching user details:", error);
             // Keep using the basic user data if fetch fails
             if (error.response?.status === 401) {
@@ -43,7 +45,7 @@ export const AuthProvider = ({ children }) => {
               authService.logout();
               setUser(null);
             }
-          });
+          }
         } else {
           // No token or user data, ensure we're logged out
           authService.logout();

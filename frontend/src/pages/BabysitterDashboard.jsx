@@ -6,6 +6,8 @@ import {
   FaMoneyBillWave,
   FaClipboardList,
   FaExclamationTriangle,
+  FaUtensils,
+  FaBed,
 } from "react-icons/fa";
 
 const BabysitterDashboard = () => {
@@ -37,7 +39,7 @@ const BabysitterDashboard = () => {
   ];
 
   const quickActions = [
-    { name: "View Children", path: "/my-children", icon: FaChild },
+    { name: "View My Children", path: "/my-children", icon: FaChild },
     { name: "Daily Schedule", path: "/my-schedule", icon: FaClock },
     {
       name: "Report Incident",
@@ -48,10 +50,34 @@ const BabysitterDashboard = () => {
   ];
 
   const recentActivities = [
-    { id: 1, child: "Sarah Johnson", action: "Checked in", time: "8:00 AM" },
-    { id: 2, child: "Michael Brown", action: "Lunch served", time: "12:30 PM" },
-    { id: 3, child: "Emma Wilson", action: "Nap time", time: "2:00 PM" },
-    { id: 4, child: "James Davis", action: "Checked out", time: "4:30 PM" },
+    {
+      id: 1,
+      child: "Sarah Johnson",
+      action: "Checked in",
+      time: "8:00 AM",
+      icon: FaChild,
+    },
+    {
+      id: 2,
+      child: "Michael Brown",
+      action: "Lunch served",
+      time: "12:30 PM",
+      icon: FaUtensils,
+    },
+    {
+      id: 3,
+      child: "Emma Wilson",
+      action: "Nap time",
+      time: "2:00 PM",
+      icon: FaBed,
+    },
+    {
+      id: 4,
+      child: "James Davis",
+      action: "Checked out",
+      time: "4:30 PM",
+      icon: FaChild,
+    },
   ];
 
   return (
@@ -135,12 +161,17 @@ const BabysitterDashboard = () => {
                 <li key={activity.id} className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <p className="text-sm font-medium text-indigo-600 truncate">
-                        {activity.child}
-                      </p>
-                      <p className="ml-2 text-sm text-gray-500">
-                        {activity.action}
-                      </p>
+                      <div className="flex-shrink-0">
+                        <activity.icon className="h-5 w-5 text-indigo-500" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-indigo-600 truncate">
+                          {activity.child}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {activity.action}
+                        </p>
+                      </div>
                     </div>
                     <div className="ml-2 flex-shrink-0">
                       <p className="text-sm text-gray-500">{activity.time}</p>

@@ -22,10 +22,14 @@ router.get("/me", auth, async (req, res) => {
     // Remove sensitive data
     const { password, ...userWithoutPassword } = user;
 
-    // Add role information
+    // Format user data based on role
     const userData = {
-      ...userWithoutPassword,
+      id: user.id,
+      email: user.email,
       role: user.role || (user.username ? "manager" : "babysitter"),
+      firstName: user.first_name || user.username,
+      lastName: user.last_name || "",
+      username: user.username || null,
     };
 
     res.json(userData);
