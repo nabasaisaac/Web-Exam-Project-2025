@@ -38,10 +38,37 @@ const Dashboard = () => {
     return null;
   }
 
-  return user.role === "manager" ? (
-    <ManagerDashboard />
-  ) : (
-    <BabysitterDashboard />
+  return (
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-lg p-6">
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <img
+              className="h-12 w-12 rounded-full"
+              src={`https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=6366f1&color=fff`}
+              alt={user.firstName}
+            />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Welcome back, {user.firstName.split(" ")
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+            }!
+            </h2>
+            <p className="text-gray-500">
+              {user.role === "manager"
+                ? "Here's an overview of your daycare center"
+                : "Here's your daily schedule and activities"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Dashboard Content */}
+      {user.role === "manager" ? <ManagerDashboard /> : <BabysitterDashboard />}
+    </div>
   );
 };
 

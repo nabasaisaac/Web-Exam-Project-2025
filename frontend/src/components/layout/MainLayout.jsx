@@ -35,18 +35,16 @@ const MainLayout = () => {
   }
 
   return (
-    // Main container with full viewport height and light gray background
-    <div className="min-h-screen bg-gray-100">
-      {/* Top navigation bar */}
+    <div className="h-screen flex flex-col">
       <Navbar />
-      {/* Flex container for sidebar and main content */}
-      <div className="flex">
-        {/* Left sidebar navigation */}
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        {/* Main content area with padding */}
-        <main className="flex-1 p-6">
-          {/* Outlet for rendering child routes */}
-          <Outlet />
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+              <Outlet />
+            </div>
+          </div>
         </main>
       </div>
     </div>

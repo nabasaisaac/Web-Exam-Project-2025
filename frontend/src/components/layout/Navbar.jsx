@@ -13,10 +13,29 @@ import { useAuth } from '../../context/AuthContext';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const username = user?.username || user?.firstName;
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  // Base navigation items for all users
+  const baseNavigation = [
+    { name: 'Dashboard', href: `/${username}/dashboard` },
+    { name: 'Children', href: `/${username}/children` },
+    { name: 'Finance', href: `/${username}/finance` },
+  ];
+
+  // Additional navigation items for managers
+  const managerNavigation = [
+    { name: 'Babysitters', href: `/${username}/babysitters` },
+    { name: 'Reports', href: `/${username}/reports` },
+  ];
+
+  // Combine navigation items based on user role
+  const navigation = user?.role === 'manager' 
+    ? [...baseNavigation, ...managerNavigation]
+    : baseNavigation;
 
   return (
     // Navigation bar with white background and shadow
@@ -26,8 +45,8 @@ const Navbar = () => {
         {/* Flex container for logo and navigation items */}
         <div className="flex justify-between h-16">
           {/* Left side - Logo */}
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
               <Link to="/" className="text-xl font-bold text-indigo-600">
                 Daystar Daycare
               </Link>
@@ -37,49 +56,34 @@ const Navbar = () => {
           {/* Right side - Navigation links and user menu */}
           <div className="flex items-center">
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center">
               <button
                 onClick={toggleMenu}
                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-indigo-600 focus:outline-none transition duration-150 ease-in-out"
               >
                 <span className="sr-only">Open main menu</span>
-                <div className="w-6 h-6 relative">
-                  <span className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${isMenuOpen ? 'rotate-45 translate-y-2' : '-translate-y-1'}`}></span>
+                <div className="w-6 h-6 relative flex items-center justify-center">
+                  <span className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${isMenuOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'}`}></span>
                   <span className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-                  <span className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${isMenuOpen ? '-rotate-45 translate-y-2' : 'translate-y-1'}`}></span>
+                  <span className={`absolute h-0.5 w-6 bg-current transform transition duration-300 ease-in-out ${isMenuOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'}`}></span>
                 </div>
               </button>
             </div>
 
             {/* Mobile menu */}
             <div className={`md:hidden absolute top-16 right-0 w-48 bg-white shadow-lg rounded-md py-1 transform transition-all duration-300 ease-in-out ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
-              <Link 
-                to="/dashboard" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200"
-              >
-                Dashboard
-              </Link>
-              <Link 
-                to="/children" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200"
-              >
-                Children
-              </Link>
-              <Link 
-                to="/babysitters" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200"
-              >
-                Babysitters
-              </Link>
-              <Link 
-                to="/finance" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200"
-              >
-                Finance
-              </Link>
+              {navigation.map((item) => (
+                <Link 
+                  key={item.name}
+                  to={item.href} 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200 hover:translate-x-1"
+                >
+                  {item.name}
+                </Link>
+              ))}
               <button
                 onClick={logout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200"
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 transition-colors duration-200 hover:translate-x-1"
               >
                 Logout
               </button>
