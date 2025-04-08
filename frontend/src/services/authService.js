@@ -2,6 +2,36 @@
 const API_URL = "http://localhost:5000/api";
 
 /**
+ * Encode user data to make it less readable
+ * @param {Object} user - User object to encode
+ * @returns {string} - Encoded user data
+ */
+const encodeUserData = (user) => {
+  const userData = {
+    id: user.id,
+    role: user.role,
+    // Only store first letter of firstName and lastName
+    fn: user.firstName ? user.firstName.charAt(0) : '',
+    ln: user.lastName ? user.lastName.charAt(0) : ''
+  };
+  return btoa(JSON.stringify(userData));
+};
+
+/**
+ * Decode user data
+ * @param {string} encodedData - Encoded user data
+ * @returns {Object|null} - Decoded user data or null if invalid
+ */
+const decodeUserData = (encodedData) => {
+  try {
+    return JSON.parse(atob(encodedData));
+  } catch (error) {
+    console.error('Error decoding user data:', error);
+    return null;
+  }
+};
+
+/**
  * Authentication service for handling login, signup, and token management
  */
 const authService = {
@@ -9,16 +39,17 @@ const authService = {
    * Login user with email and password
    * @param {string} email - User's email
    * @param {string} password - User's password
+   * @param {string} role - User's role (manager or babysitter)
    * @returns {Promise} - Promise with user data and token
    */
-  login: async (email, password) => {
+  login: async (email, password, role) => {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role }),
       });
 
       const data = await response.json();
@@ -27,10 +58,10 @@ const authService = {
         throw new Error(data.message || "Login failed");
       }
 
-      // Store token in localStorage
+      // Store token and encoded user data in localStorage
       if (data.token) {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("user", encodeUserData(data.user));
       }
 
       return data;
@@ -81,8 +112,8 @@ const authService = {
    * @returns {Object|null} - User object or null if not logged in
    */
   getCurrentUser: () => {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+    const encodedUser = localStorage.getItem("user");
+    return encodedUser ? decodeUserData(encodedUser) : null;
   },
 
   /**

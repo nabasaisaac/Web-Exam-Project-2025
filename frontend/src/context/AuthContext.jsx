@@ -21,7 +21,19 @@ export const AuthProvider = ({ children }) => {
     const loadUser = () => {
       try {
         const currentUser = authService.getCurrentUser();
-        setUser(currentUser);
+        if (currentUser) {
+          // Fetch full user data from server if needed
+          axios.get(`${API_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${authService.getToken()}`
+            }
+          }).then(response => {
+            setUser(response.data);
+          }).catch(error => {
+            console.error("Error fetching user details:", error);
+            setUser(currentUser); // Use the basic user data if fetch fails
+          });
+        }
       } catch (err) {
         console.error("Error loading user:", err);
         setError("Failed to load user data");
@@ -45,6 +57,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const data = await authService.login(email, password);
+      // Set the full user data from the login response
       setUser(data.user);
       return data;
     } catch (err) {
