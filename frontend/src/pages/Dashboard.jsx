@@ -1,90 +1,75 @@
-import React from 'react';
+import React from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import ManagerDashboard from "./ManagerDashboard";
+import BabysitterDashboard from "./BabysitterDashboard";
 
 const Dashboard = () => {
-  const stats = [
-    { name: 'Total Children', value: '24', change: '+2', changeType: 'increase' },
-    { name: 'Active Babysitters', value: '8', change: '+1', changeType: 'increase' },
-    { name: 'Today\'s Attendance', value: '18', change: '-3', changeType: 'decrease' },
-    { name: 'Monthly Revenue', value: 'UGX 2.4M', change: '+12%', changeType: 'increase' },
-  ];
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  const recentActivities = [
-    { id: 1, child: 'Sarah Johnson', action: 'Checked in', time: '8:00 AM' },
-    { id: 2, child: 'Michael Brown', action: 'Checked out', time: '4:30 PM' },
-    { id: 3, child: 'Emma Wilson', action: 'Incident report filed', time: '2:15 PM' },
-    { id: 4, child: 'James Davis', action: 'New registration', time: '10:00 AM' },
-  ];
+  React.useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user) {
+      // Check if the current URL matches the user's role and username
+      const currentPath = window.location.pathname;
+      const expectedPath = `/${user.username || user.firstName}/dashboard`;
+
+      if (currentPath !== expectedPath) {
+        navigate(expectedPath);
+      }
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-      </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Stats */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((item) => (
-              <div
-                key={item.name}
-                className="bg-white overflow-hidden shadow rounded-lg"
-              >
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-1">
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        {item.name}
-                      </dt>
-                      <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                        {item.value}
-                      </dd>
-                    </div>
-                    <div className={`ml-2 flex-shrink-0 ${
-                      item.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {item.change}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-lg p-6">
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <img
+              className="h-12 w-12 rounded-full"
+              src={`https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=6366f1&color=fff`}
+              alt={user.firstName}
+            />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Welcome back, {user.firstName.split(" ")
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+            }!
+            </h2>
+            <p className="text-gray-500">
+              {user.role === "manager"
+                ? "Here's an overview of your daycare center"
+                : "Here's your daily schedule and activities"}
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Recent Activity */}
-        <div className="mt-8">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Recent Activity
-              </h3>
-            </div>
-            <div className="border-t border-gray-200">
-              <ul className="divide-y divide-gray-200">
-                {recentActivities.map((activity) => (
-                  <li key={activity.id} className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <p className="text-sm font-medium text-indigo-600 truncate">
-                          {activity.child}
-                        </p>
-                        <p className="ml-2 text-sm text-gray-500">
-                          {activity.action}
-                        </p>
-                      </div>
-                      <div className="ml-2 flex-shrink-0">
-                        <p className="text-sm text-gray-500">{activity.time}</p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Dashboard Content */}
+      {user.role === "manager" ? <ManagerDashboard /> : <BabysitterDashboard />}
     </div>
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

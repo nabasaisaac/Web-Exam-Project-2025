@@ -1,36 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 const Children = () => {
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: '',
-    age: '',
-    parentName: '',
-    parentPhone: '',
-    specialNeeds: '',
-    duration: 'full-day'
+    fullName: "",
+    age: "",
+    parentName: "",
+    parentPhone: "",
+    specialNeeds: "",
+    duration: "full-day",
   });
 
   const children = [
     {
       id: 1,
-      fullName: 'Sarah Johnson',
+      fullName: "Sarah Johnson",
       age: 4,
-      parentName: 'John Johnson',
-      parentPhone: '+256 701234567',
-      specialNeeds: 'None',
-      duration: 'full-day',
-      status: 'present'
+      parentName: "John Johnson",
+      parentPhone: "+256 701234567",
+      specialNeeds: "None",
+      duration: "full-day",
+      status: "present",
     },
     {
       id: 2,
-      fullName: 'Michael Brown',
+      fullName: "Michael Brown",
       age: 3,
-      parentName: 'Mary Brown',
-      parentPhone: '+256 702345678',
-      specialNeeds: 'Allergic to peanuts',
-      duration: 'half-day',
-      status: 'absent'
+      parentName: "Mary Brown",
+      parentPhone: "+256 702345678",
+      specialNeeds: "Allergic to peanuts",
+      duration: "half-day",
+      status: "absent",
     },
     // Add more sample data as needed
   ];
@@ -40,20 +40,20 @@ const Children = () => {
     // TODO: Implement actual registration logic
     setShowRegistrationForm(false);
     setFormData({
-      fullName: '',
-      age: '',
-      parentName: '',
-      parentPhone: '',
-      specialNeeds: '',
-      duration: 'full-day'
+      fullName: "",
+      age: "",
+      parentName: "",
+      parentPhone: "",
+      specialNeeds: "",
+      duration: "full-day",
     });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -184,9 +184,13 @@ const Children = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
-                          <div className={`h-3 w-3 rounded-full ${
-                            child.status === 'present' ? 'bg-green-400' : 'bg-red-400'
-                          }`} />
+                          <div
+                            className={`h-3 w-3 rounded-full ${
+                              child.status === "present"
+                                ? "bg-green-400"
+                                : "bg-red-400"
+                            }`}
+                          />
                         </div>
                         <div className="ml-4">
                           <h2 className="text-lg font-medium text-gray-900">
@@ -227,4 +231,4 @@ const Children = () => {
   );
 };
 
-export default Children; 
+export default Children;

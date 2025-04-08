@@ -18,13 +18,44 @@ export const AuthProvider = ({ children }) => {
 
   // Load user from localStorage on initial render
   useEffect(() => {
-    const loadUser = () => {
+    const loadUser = async () => {
       try {
+        const token = authService.getToken();
         const currentUser = authService.getCurrentUser();
-        setUser(currentUser);
+        
+        if (token && currentUser) {
+          // Set the basic user data immediately
+          setUser(currentUser);
+          
+          try {
+            // Then try to fetch full user data
+            const response = await axios.get(`${API_URL}/auth/me`, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            
+            // Update with full user data if successful
+            setUser(response.data);
+          } catch (error) {
+            console.error("Error fetching user details:", error);
+            // Keep using the basic user data if fetch fails
+            if (error.response?.status === 401) {
+              // Token is invalid, clear everything
+              authService.logout();
+              setUser(null);
+            }
+          }
+        } else {
+          // No token or user data, ensure we're logged out
+          authService.logout();
+          setUser(null);
+        }
       } catch (err) {
         console.error("Error loading user:", err);
         setError("Failed to load user data");
+        authService.logout();
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -37,15 +68,15 @@ export const AuthProvider = ({ children }) => {
    * Login user with credentials
    * @param {string} email - User email
    * @param {string} password - User password
-   * @param {string} role - User role
    * @returns {Promise} - Login result
    */
-  const login = async (email, password, role) => {
+  const login = async (email, password) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await authService.login(email, password, role);
+      const data = await authService.login(email, password);
+      // Set the full user data from the login response
       setUser(data.user);
       return data;
     } catch (err) {

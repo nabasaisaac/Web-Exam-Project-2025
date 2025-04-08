@@ -53,9 +53,41 @@ const Signup = () => {
     return age;
   };
 
+  const validatePhoneNumber = (phone) => {
+    // Remove any non-digit characters
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Check if it starts with 07 and has 10 digits
+    return /^07\d{8}$/.test(cleanPhone);
+  };
+
+  const validateNIN = (nin) => {
+    // Check if it's exactly 14 characters and contains only uppercase letters and numbers
+    return /^[A-Z0-9]{14}$/.test(nin);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Validate phone numbers
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      toast.error("Invalid phone number");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!validatePhoneNumber(formData.nextOfKinPhone)) {
+      toast.error("Invalid next of kin phone number");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate NIN
+    if (!validateNIN(formData.nin)) {
+      toast.error("Invalid NIN");
+      setIsLoading(false);
+      return;
+    }
 
     // Validate age
     const age = calculateAge(formData.dateOfBirth);
@@ -77,18 +109,7 @@ const Signup = () => {
       return;
     }
 
-    // First validate all required fields are present
-    if (
-      !formData.nextOfKinName ||
-      !formData.nextOfKinPhone ||
-      !formData.nextOfKinRelationship
-    ) {
-      toast.error("Please fill in all next of kin information");
-      setIsLoading(false);
-      return;
-    }
-
-    // First validate all required fields are present
+    // Validate next of kin information
     if (
       !formData.nextOfKinName ||
       !formData.nextOfKinPhone ||
@@ -100,15 +121,15 @@ const Signup = () => {
     }
 
     try {
-      await register(
+      const response = await register(
         formData.firstName,
         formData.lastName,
         formData.email,
         formData.password,
         "babysitter",
         {
-          phoneNumber: formData.phoneNumber,
-          nin: formData.nin,
+          phoneNumber: formData.phoneNumber.replace(/\D/g, ''), // Remove non-digits
+          nin: formData.nin.toUpperCase(), // Ensure uppercase
           dateOfBirth: formData.dateOfBirth,
           nextOfKin: {
             name: formData.nextOfKinName,
@@ -117,10 +138,10 @@ const Signup = () => {
           },
         }
       );
-      toast.success("Registration successful! Please log in.");
-      navigate("/login");
+
+      toast.success("Registration successful!");
+      navigate("/dashboard"); // Navigate directly to dashboard
     } catch (error) {
-      console.log(formData);
       console.error("Registration error:", error);
       toast.error(error.message || "Registration failed");
     } finally {
