@@ -37,15 +37,14 @@ export const AuthProvider = ({ children }) => {
    * Login user with credentials
    * @param {string} email - User email
    * @param {string} password - User password
-   * @param {string} role - User role
    * @returns {Promise} - Login result
    */
-  const login = async (email, password, role) => {
+  const login = async (email, password) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await authService.login(email, password, role);
+      const data = await authService.login(email, password);
       setUser(data.user);
       return data;
     } catch (err) {

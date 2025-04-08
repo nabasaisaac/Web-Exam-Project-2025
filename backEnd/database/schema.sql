@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
+  password VARCHAR(55) NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   last_login DATETIME,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -104,3 +104,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 SELECT * FROM babysitters;
 use daystar_daycare;
+SELECT * FROM users;
+DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';
+ALTER TABLE users AUTO_INCREMENT = 1;
+
+INSERT INTO users (username, email, password) 
+VALUES ('NABASA ISAAC', 'nabasaisaac16@gmail.com', 'nabasaisaac16@gmail.com');
+
+

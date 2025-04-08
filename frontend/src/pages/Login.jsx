@@ -14,7 +14,6 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "babysitter",
     rememberMe: false,
   });
 
@@ -22,15 +21,13 @@ const Login = () => {
     // Check for saved credentials
     const savedEmail = localStorage.getItem("userEmail");
     const savedPassword = localStorage.getItem("userPassword");
-    const savedRole = localStorage.getItem("userRole");
     const savedRememberMe = localStorage.getItem("rememberMe") === "true";
 
-    if (savedEmail && savedPassword && savedRole && savedRememberMe) {
+    if (savedEmail && savedPassword && savedRememberMe) {
       setFormData((prev) => ({
         ...prev,
         email: savedEmail,
         password: savedPassword,
-        role: savedRole,
         rememberMe: true,
       }));
     }
@@ -41,18 +38,16 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(formData.email, formData.password, formData.role);
+      await login(formData.email, formData.password);
 
       // Save credentials if remember me is checked
       if (formData.rememberMe) {
         localStorage.setItem("userEmail", formData.email);
         localStorage.setItem("userPassword", formData.password);
-        localStorage.setItem("userRole", formData.role);
         localStorage.setItem("rememberMe", "true");
       } else {
         localStorage.removeItem("userEmail");
         localStorage.removeItem("userPassword");
-        localStorage.removeItem("userRole");
         localStorage.removeItem("rememberMe");
       }
 
@@ -143,65 +138,6 @@ const Login = () => {
                     <FaEyeSlash className="h-5 w-5 text-gray-400" />
                   )}
                 </button>
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Login as
-              </label>
-              <div className="relative w-[235px] h-10 bg-white rounded-lg p-1">
-                <div
-                  className={`absolute w-28 h-8 bg-indigo-500 rounded-md transition-transform duration-300 ease-in-out ${
-                    formData.role === "babysitter"
-                      ? "translate-x-0"
-                      : "translate-x-28"
-                  }`}
-                />
-                <div className="relative flex h-full">
-                  <label className="flex-1 relative">
-                    <input
-                      type="radio"
-                      name="role"
-                      value="babysitter"
-                      checked={formData.role === "babysitter"}
-                      onChange={handleChange}
-                      className="sr-only"
-                      disabled={isLoading}
-                    />
-                    <div
-                      className={`h-full flex items-center justify-center text-sm font-medium transition-colors duration-200 ${
-                        formData.role === "babysitter"
-                          ? "text-white"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      Babysitter
-                    </div>
-                  </label>
-                  <label className="flex-1 relative">
-                    <input
-                      type="radio"
-                      name="role"
-                      value="manager"
-                      checked={formData.role === "manager"}
-                      onChange={handleChange}
-                      className="sr-only"
-                      disabled={isLoading}
-                    />
-                    <div
-                      className={`h-full flex items-center justify-center text-sm font-medium transition-colors duration-200 ${
-                        formData.role === "manager"
-                          ? "text-white"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      Manager
-                    </div>
-                  </label>
-                </div>
               </div>
             </div>
           </div>

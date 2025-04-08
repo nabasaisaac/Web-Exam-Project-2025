@@ -6,7 +6,7 @@ const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, additionalData } =
       req.body;
-    console.log(req.body)
+    console.log(req.body);
     // Validate required fields
     if (!firstName || !lastName || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -116,12 +116,14 @@ const register = async (req, res) => {
 
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
+      console.log("Hashed password for manager:", hashedPassword);
 
       // Insert into users table
       const [result] = await db.query(
         "INSERT INTO users (username, email, password, is_active) VALUES (?, ?, ?, ?)",
         [email, email, hashedPassword, true]
       );
+      console.log("Manager registration result:", result);
 
       const userId = result.insertId;
 
@@ -156,95 +158,75 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
+    console.log("Login attempt for email:", email);
 
+    // First check in babysitters table
+    const [babysitters] = await db.query(
+      "SELECT * FROM babysitters WHERE email = ?",
+      [email]
+    );
+    console.log("Found in babysitters table:", babysitters.length > 0);
+
+    // If not found in babysitters, check in users table
+    const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
+      email,
+    ]);
+    console.log("Found in users table:", users.length > 0);
+
+    let user = null;
+    let role = null;
+
+    if (babysitters.length > 0) {
+      user = babysitters[0];
+      role = "babysitter";
+    } else if (users.length > 0) {
+      user = users[0];
+      role = "manager";
+    }
+
+    if (!user) {
+      console.log("User not found in either table");
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log("Password validation result:", isValidPassword);
+    console.log("Input password:", password);
+    console.log("Stored hashed password:", user.password);
+
+    if (!isValidPassword) {
+      console.log("Invalid password");
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Update last login
     if (role === "babysitter") {
-      // Find babysitter
-      const [babysitters] = await db.query(
-        "SELECT * FROM babysitters WHERE email = ?",
-        [email]
-      );
-
-      if (babysitters.length === 0) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      const babysitter = babysitters[0];
-
-      // Verify password
-      const isValidPassword = await bcrypt.compare(
-        password,
-        babysitter.password
-      );
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      // Update last login
       await db.query("UPDATE babysitters SET last_login = NOW() WHERE id = ?", [
-        babysitter.id,
+        user.id,
       ]);
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: babysitter.id, role: "babysitter" },
-        process.env.JWT_SECRET,
-        { expiresIn: "24h" }
-      );
-
-      res.json({
-        token,
-        user: {
-          id: babysitter.id,
-          email: babysitter.email,
-          role: "babysitter",
-          firstName: babysitter.first_name,
-          lastName: babysitter.last_name,
-        },
-      });
-    } else if (role === "manager") {
-      // Find manager in users table
-      const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
-        email,
-      ]);
-
-      if (users.length === 0) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      const user = users[0];
-
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      // Update last login
+    } else {
       await db.query("UPDATE users SET last_login = NOW() WHERE id = ?", [
         user.id,
       ]);
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: user.id, role: "manager" },
-        process.env.JWT_SECRET,
-        { expiresIn: "24h" }
-      );
-
-      res.json({
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: "manager",
-          firstName: user.first_name,
-          lastName: user.last_name,
-        },
-      });
-    } else {
-      return res.status(400).json({ message: "Invalid role" });
     }
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user.id, role }, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role,
+        firstName: user.first_name || user.username,
+        lastName: user.last_name || "",
+      },
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Login failed" });
