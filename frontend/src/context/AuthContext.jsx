@@ -3,9 +3,11 @@ import { toast } from "react-toastify";
 import authService from "../services/authService";
 import axios from "axios";
 
-// Create the authentication context
-const AuthContext = createContext();
+// Create and export the authentication context
+export const AuthContext = createContext();
+
 const API_URL = "http://localhost:5000/api";
+
 /**
  * Authentication provider component
  * @param {Object} props - Component props
@@ -22,19 +24,19 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = authService.getToken();
         const currentUser = authService.getCurrentUser();
-        
+
         if (token && currentUser) {
           // Set the basic user data immediately
           setUser(currentUser);
-          
+
           try {
             // Then try to fetch full user data
             const response = await axios.get(`${API_URL}/auth/me`, {
               headers: {
-                Authorization: `Bearer ${token}`
-              }
+                Authorization: `Bearer ${token}`,
+              },
             });
-            
+
             // Update with full user data if successful
             setUser(response.data);
           } catch (error) {
@@ -113,9 +115,9 @@ export const AuthProvider = ({ children }) => {
           nextOfKin: {
             name: additionalData.nextOfKin.name,
             phone: additionalData.nextOfKin.phone,
-            relationship: additionalData.nextOfKin.relationship
-          }
-        }
+            relationship: additionalData.nextOfKin.relationship,
+          },
+        },
       });
 
       if (response.data.token) {
@@ -162,5 +164,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export default AuthContext;

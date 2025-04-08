@@ -10,10 +10,14 @@ const FinancialTransaction = require("../models/FinancialTransaction");
 // Get all children
 router.get("/", auth, async (req, res) => {
   try {
-    const children = await Child.find({ isActive: true }).populate(
-      "assignedBabysitter",
-      "firstName lastName"
-    );
+    let children;
+    if (req.query.babysitterId) {
+      // If babysitterId is provided, get only their children
+      children = await Child.findChildrenByBabysitter(req.query.babysitterId);
+    } else {
+      // Otherwise get all children
+      children = await Child.findAllChildren();
+    }
     res.json(children);
   } catch (error) {
     res
@@ -27,7 +31,7 @@ router.post(
   "/",
   [
     auth,
-    authorize("manager"),
+    authorize("manager", "babysitter"),
     body("fullName")
       .trim()
       .notEmpty()
@@ -56,14 +60,26 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const child = new Child(req.body);
-      await child.save();
+      const childData = {
+        fullName: req.body.fullName,
+        age: req.body.age,
+        parentName: req.body.parentDetails.fullName,
+        parentPhone: req.body.parentDetails.phoneNumber,
+        parentEmail: req.body.parentDetails.email,
+        specialCareNeeds: req.body.specialNeeds,
+        sessionType: req.body.sessionType,
+        assignedBabysitterId: req.body.assignedBabysitter,
+      };
+
+      const childId = await Child.createChild(childData);
+      const child = await Child.findChildById(childId);
 
       res.status(201).json({
         message: "Child registered successfully",
         child,
       });
     } catch (error) {
+      console.error("Error registering child:", error);
       res
         .status(500)
         .json({ message: "Error registering child", error: error.message });
@@ -74,10 +90,7 @@ router.post(
 // Get child by ID
 router.get("/:id", auth, async (req, res) => {
   try {
-    const child = await Child.findById(req.params.id).populate(
-      "assignedBabysitter",
-      "firstName lastName"
-    );
+    const child = await Child.findChildById(req.params.id);
 
     if (!child) {
       return res.status(404).json({ message: "Child not found" });
@@ -110,14 +123,18 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const child = await Child.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true,
-      });
+      const updates = {
+        full_name: req.body.fullName,
+        age: req.body.age,
+        parent_name: req.body.parentDetails?.fullName,
+        parent_phone: req.body.parentDetails?.phoneNumber,
+        parent_email: req.body.parentDetails?.email,
+        special_care_needs: req.body.specialNeeds,
+        session_type: req.body.sessionType,
+      };
 
-      if (!child) {
-        return res.status(404).json({ message: "Child not found" });
-      }
+      await Child.updateChild(req.params.id, updates);
+      const child = await Child.findChildById(req.params.id);
 
       res.json({
         message: "Child updated successfully",
@@ -134,16 +151,7 @@ router.put(
 // Delete child (soft delete)
 router.delete("/:id", [auth, authorize("manager")], async (req, res) => {
   try {
-    const child = await Child.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
-
-    if (!child) {
-      return res.status(404).json({ message: "Child not found" });
-    }
-
+    await Child.deleteChild(req.params.id);
     res.json({ message: "Child deactivated successfully" });
   } catch (error) {
     res
@@ -155,10 +163,7 @@ router.delete("/:id", [auth, authorize("manager")], async (req, res) => {
 // Get child's attendance history
 router.get("/:id/attendance", auth, async (req, res) => {
   try {
-    const attendance = await Attendance.find({
-      "children.child": req.params.id,
-    }).sort({ date: -1 });
-
+    const attendance = await Child.getChildAttendance(req.params.id);
     res.json(attendance);
   } catch (error) {
     res.status(500).json({
@@ -171,10 +176,7 @@ router.get("/:id/attendance", auth, async (req, res) => {
 // Get child's incident reports
 router.get("/:id/incidents", auth, async (req, res) => {
   try {
-    const incidents = await IncidentReport.find({
-      child: req.params.id,
-    }).sort({ date: -1 });
-
+    const incidents = await Child.getChildIncidents(req.params.id);
     res.json(incidents);
   } catch (error) {
     res.status(500).json({
