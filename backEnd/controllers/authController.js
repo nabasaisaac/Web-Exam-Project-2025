@@ -4,8 +4,15 @@ const db = require("../config/database");
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role, additionalData } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      additionalData,
+      username,
+    } = req.body;
     console.log(req.body);
     // Validate required fields
     if (!firstName || !lastName || !password || !role) {
@@ -104,14 +111,23 @@ const register = async (req, res) => {
         },
       });
     } else if (role === "manager") {
-      // For managers, use the users table
+      // For managers, validate username
+      if (!username) {
+        return res
+          .status(400)
+          .json({ message: "Username is required for managers" });
+      }
+
+      // Check if email or username already exists in users table
       const [existingUser] = await db.query(
-        "SELECT id FROM users WHERE email = ?",
-        [email]
+        "SELECT id FROM users WHERE email = ? OR username = ?",
+        [email, username]
       );
 
       if (existingUser.length > 0) {
-        return res.status(400).json({ message: "Email already exists" });
+        return res
+          .status(400)
+          .json({ message: "Email or username already exists" });
       }
 
       // Hash password
@@ -121,7 +137,7 @@ const register = async (req, res) => {
       // Insert into users table
       const [result] = await db.query(
         "INSERT INTO users (username, email, password, is_active) VALUES (?, ?, ?, ?)",
-        [email, email, hashedPassword, true]
+        [username, email, hashedPassword, true]
       );
       console.log("Manager registration result:", result);
 
@@ -168,7 +184,7 @@ const login = async (req, res) => {
     );
     console.log("Found in babysitters table:", babysitters.length > 0);
 
-    // If not found in babysitters, check in users table
+    // Then check in users table
     const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
@@ -177,12 +193,15 @@ const login = async (req, res) => {
     let user = null;
     let role = null;
 
-    if (babysitters.length > 0) {
-      user = babysitters[0];
-      role = "babysitter";
-    } else if (users.length > 0) {
+    // If found in both tables, prioritize users table (managers)
+    if (users.length > 0) {
       user = users[0];
       role = "manager";
+      console.log("Using manager account from users table");
+    } else if (babysitters.length > 0) {
+      user = babysitters[0];
+      role = "babysitter";
+      console.log("Using babysitter account from babysitters table");
     }
 
     if (!user) {
@@ -191,10 +210,12 @@ const login = async (req, res) => {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log("Password validation result:", isValidPassword);
+    console.log("Attempting password verification for:", role);
     console.log("Input password:", password);
     console.log("Stored hashed password:", user.password);
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log("Password validation result:", isValidPassword);
 
     if (!isValidPassword) {
       console.log("Invalid password");

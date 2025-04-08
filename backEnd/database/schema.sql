@@ -105,10 +105,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 SELECT * FROM babysitters;
 use daystar_daycare;
 SELECT * FROM users;
+DELETE FROM users WHERE id = 1;
 DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';
-ALTER TABLE users AUTO_INCREMENT = 1;
+-- ALTER TABLE users AUTO_INCREMENT = 1;
 
-INSERT INTO users (username, email, password) 
-VALUES ('NABASA ISAAC', 'nabasaisaac16@gmail.com', 'nabasaisaac16@gmail.com');
+-- INSERT INTO users (username, email, password) 
+-- VALUES ('NABASA ISAAC', 'nabasaisaac16@gmail.com', 'nabasaisaac16@gmail.com');
 
 
