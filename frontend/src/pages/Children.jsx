@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "../styles/auth.css";
 
 const Children = () => {
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
@@ -64,107 +65,89 @@ const Children = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Children</h1>
           <button
             onClick={() => setShowRegistrationForm(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-4 py-2 bg-indigo-600 text-white rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent hover:bg-indigo-700 transition"
           >
             Register New Child
           </button>
         </div>
 
-        {/* Registration Form Modal */}
-        {showRegistrationForm && (
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-lg font-medium mb-4">Register New Child</h2>
+        {/* Slide-in Overlay */}
+        <div
+          className={`fixed top-0 left-0 w-full h-full bg-black bg-opacity-70 transition-transform duration-500 z-40 ${
+            showRegistrationForm ? "translate-y-0" : "-translate-y-full"
+          }`}
+        >
+          {/* Centered Registration Info Box */}
+          <div className="flex items-center justify-center h-full">
+            <div className="bg-white p-8 rounded shadow-lg w-[90%] max-w-md">
+              <h2 className="text-xl font-semibold mb-4 text-center">
+                Register New Child
+              </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Child's Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Age
-                  </label>
-                  <input
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Parent/Guardian Name
-                  </label>
-                  <input
-                    type="text"
-                    name="parentName"
-                    value={formData.parentName}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Parent/Guardian Phone
-                  </label>
-                  <input
-                    type="tel"
-                    name="parentPhone"
-                    value={formData.parentPhone}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Special Needs
-                  </label>
-                  <textarea
-                    name="specialNeeds"
-                    value={formData.specialNeeds}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    rows="3"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Duration
-                  </label>
-                  <select
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  >
-                    <option value="half-day">Half Day</option>
-                    <option value="full-day">Full Day</option>
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-3">
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="Child's Full Name"
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  required
+                />
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleChange}
+                  placeholder="Age"
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  required
+                />
+                <input
+                  type="text"
+                  name="parentName"
+                  value={formData.parentName}
+                  onChange={handleChange}
+                  placeholder="Parent/Guardian Name"
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  required
+                />
+                <input
+                  type="tel"
+                  name="parentPhone"
+                  value={formData.parentPhone}
+                  onChange={handleChange}
+                  placeholder="Parent/Guardian Phone"
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  required
+                />
+                <textarea
+                  name="specialNeeds"
+                  value={formData.specialNeeds}
+                  onChange={handleChange}
+                  placeholder="Special Needs"
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                  rows="3"
+                />
+                <select
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-[#4299e1]"
+                >
+                  <option value="half-day">Half Day</option>
+                  <option value="full-day">Full Day</option>
+                </select>
+                <div className="flex justify-end space-x-2">
                   <button
                     type="button"
                     onClick={() => setShowRegistrationForm(false)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
                   >
                     Register
                   </button>
@@ -172,7 +155,7 @@ const Children = () => {
               </form>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Children List */}
         <div className="mt-8">
