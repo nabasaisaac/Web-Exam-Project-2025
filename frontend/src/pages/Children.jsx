@@ -8,9 +8,15 @@ const Children = () => {
     fullName: "",
     age: "",
     parentName: "",
+    parentEmail: "",
     parentPhone: "",
     specialNeeds: "",
     duration: "full-day",
+  });
+
+  const [errors, setErrors] = useState({
+    parentEmail: "",
+    parentPhone: "",
   });
 
   const children = [
@@ -37,17 +43,46 @@ const Children = () => {
     // Add more sample data as needed
   ];
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    // Basic phone validation - allows +, numbers, and spaces
+    const re = /^\+?[\d\s-]{10,}$/;
+    return re.test(phone);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validate email and phone
+    const emailValid = validateEmail(formData.parentEmail);
+    const phoneValid = validatePhone(formData.parentPhone);
+
+    if (!emailValid || !phoneValid) {
+      setErrors({
+        parentEmail: !emailValid ? "Please enter a valid email address" : "",
+        parentPhone: !phoneValid ? "Please enter a valid phone number" : "",
+      });
+      return;
+    }
+
     // TODO: Implement actual registration logic
     setShowRegistrationForm(false);
     setFormData({
       fullName: "",
       age: "",
       parentName: "",
+      parentEmail: "",
       parentPhone: "",
       specialNeeds: "",
       duration: "full-day",
+    });
+    setErrors({
+      parentEmail: "",
+      parentPhone: "",
     });
   };
 
@@ -57,6 +92,14 @@ const Children = () => {
       ...prevState,
       [name]: value,
     }));
+
+    // Clear error when user starts typing
+    if (name === "parentEmail" || name === "parentPhone") {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [name]: "",
+      }));
+    }
   };
 
   return (
@@ -93,59 +136,92 @@ const Children = () => {
                 Register New Child
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="Child's Full Name"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                  required
-                />
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  placeholder="Age"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                  required
-                />
-                <input
-                  type="text"
-                  name="parentName"
-                  value={formData.parentName}
-                  onChange={handleChange}
-                  placeholder="Parent/Guardian Name"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                  required
-                />
-                <input
-                  type="tel"
-                  name="parentPhone"
-                  value={formData.parentPhone}
-                  onChange={handleChange}
-                  placeholder="Parent/Guardian Phone"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                  required
-                />
-                <textarea
-                  name="specialNeeds"
-                  value={formData.specialNeeds}
-                  onChange={handleChange}
-                  placeholder="Special Needs"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                  rows="3"
-                />
-                <select
-                  name="duration"
-                  value={formData.duration}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
-                >
-                  <option value="half-day">Half Day</option>
-                  <option value="full-day">Full Day</option>
-                </select>
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="Child's Full Name"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="number"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleChange}
+                    placeholder="Age"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    name="parentName"
+                    value={formData.parentName}
+                    onChange={handleChange}
+                    placeholder="Parent/Guardian Name"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="email"
+                    name="parentEmail"
+                    value={formData.parentEmail}
+                    onChange={handleChange}
+                    placeholder="Parent/Guardian Email"
+                    className={`w-full p-2 border rounded-lg focus:outline-none focus:border-[#4299e1] ${
+                      errors.parentEmail ? "border-red-500" : "border-gray-300"
+                    }`}
+                    required
+                  />
+                  {errors.parentEmail && (
+                    <p className="text-red-500 text-sm">{errors.parentEmail}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="tel"
+                    name="parentPhone"
+                    value={formData.parentPhone}
+                    onChange={handleChange}
+                    placeholder="Parent/Guardian Phone"
+                    className={`w-full p-2 border rounded-lg focus:outline-none focus:border-[#4299e1] ${
+                      errors.parentPhone ? "border-red-500" : "border-gray-300"
+                    }`}
+                    required
+                  />
+                  {errors.parentPhone && (
+                    <p className="text-red-500 text-sm">{errors.parentPhone}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <textarea
+                    name="specialNeeds"
+                    value={formData.specialNeeds}
+                    onChange={handleChange}
+                    placeholder="Special Needs"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
+                    rows="3"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <select
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4299e1]"
+                  >
+                    <option value="half-day">Half Day</option>
+                    <option value="full-day">Full Day</option>
+                  </select>
+                </div>
                 <div className="flex justify-end">
                   <button
                     type="submit"
