@@ -127,7 +127,10 @@ const Children = () => {
               {/* Close Button */}
               <button
                 onClick={() => setShowRegistrationForm(false)}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 focus:outline-none focus:border-[#4299e1]"
+                className="absolute top-4 right-4 w-8 h-8 flex 
+                items-center justify-center rounded-full border border-indigo-600
+                focus:outline-none focus:border-[#4299e1] 
+                 cursor-pointer hover:animate-spin hover:scale-110"
               >
                 <FaTimes className="text-gray-500" />
               </button>
@@ -225,7 +228,8 @@ const Children = () => {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none
+                     focus:border-[#4299e1] border-2 border-transparent cursor-pointer"
                   >
                     Register
                   </button>
