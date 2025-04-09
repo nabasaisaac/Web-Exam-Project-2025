@@ -6,6 +6,8 @@ const Child = require("../models/Child");
 const Attendance = require("../models/Attendance");
 const IncidentReport = require("../models/IncidentReport");
 const FinancialTransaction = require("../models/FinancialTransaction");
+const Babysitter = require("../models/Babysitter");
+const db = require("../config/database");
 
 // Get all children
 router.get("/", auth, async (req, res) => {
@@ -95,8 +97,18 @@ router.get("/:id", auth, async (req, res) => {
     if (!child) {
       return res.status(404).json({ message: "Child not found" });
     }
+
+    // Get the babysitter details if assigned
+    if (child.assigned_babysitter_id) {
+      const babysitter = await Babysitter.findBabysitterById(
+        child.assigned_babysitter_id
+      );
+      child.assigned_babysitter = babysitter;
+    }
+
     res.json(child);
   } catch (error) {
+    console.error("Error fetching child:", error);
     res
       .status(500)
       .json({ message: "Error fetching child", error: error.message });
@@ -202,6 +214,40 @@ router.get("/:id/payments", auth, async (req, res) => {
       message: "Error fetching payment history",
       error: error.message,
     });
+  }
+});
+
+// Update child attendance
+router.post("/:id/attendance", auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const childId = req.params.id;
+
+    // Validate status
+    if (!["check-in", "check-out"].includes(status)) {
+      return res.status(400).json({ message: "Invalid attendance status" });
+    }
+
+    // Update child's is_active status
+    // true for check-in, false for check-out
+    const isActive = status === "check-in";
+    const query = "UPDATE children SET is_active = ? WHERE id = ?";
+    await db.query(query, [isActive, childId]);
+
+    // Get updated child data
+    const child = await Child.findChildById(childId);
+
+    if (!child) {
+      return res.status(404).json({ message: "Child not found" });
+    }
+
+    res.json({
+      message: "Attendance updated successfully",
+      status: child.is_active ? "check-in" : "check-out",
+    });
+  } catch (error) {
+    console.error("Error updating attendance:", error);
+    res.status(500).json({ message: "Error updating attendance" });
   }
 });
 

@@ -5,82 +5,58 @@ const { auth, authorize } = require("../middleware/auth");
 const IncidentReport = require("../models/IncidentReport");
 const Child = require("../models/Child");
 const Notification = require("../models/Notification");
+const db = require("../config/database");
+const { sendIncidentEmail } = require("../services/emailService");
 
 // Create incident report
-router.post(
-  "/",
-  [
-    auth,
-    authorize("manager", "babysitter"),
-    body("child").isMongoId().withMessage("Invalid child ID"),
-    body("incidentType")
-      .isIn(["health", "behavior", "accident", "other"])
-      .withMessage("Invalid incident type"),
-    body("description")
-      .trim()
-      .notEmpty()
-      .withMessage("Description is required"),
-    body("severity")
-      .isIn(["low", "medium", "high"])
-      .withMessage("Invalid severity level"),
-    body("actionTaken")
-      .trim()
-      .notEmpty()
-      .withMessage("Action taken is required"),
-  ],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+router.post("/", [auth, authorize("babysitter")], async (req, res) => {
+  try {
+    const { child_id, incident_type, description, target } = req.body;
 
-      // Verify child exists and is active
-      const child = await Child.findOne({
-        _id: req.body.child,
-        isActive: true,
-      });
+    // Get child details directly from children table
+    const [child] = await db.query("SELECT * FROM children WHERE id = ?", [
+      child_id,
+    ]);
 
-      if (!child) {
-        return res.status(404).json({ message: "Child not found or inactive" });
-      }
-
-      const incident = new IncidentReport({
-        ...req.body,
-        reportedBy: req.user._id,
-      });
-
-      await incident.save();
-
-      // Create notification for manager if reported by babysitter
-      if (req.user.role === "babysitter") {
-        const notification = new Notification({
-          recipient: child._id,
-          recipientModel: "Child",
-          type: "incident-report",
-          title: "New Incident Report",
-          message: `An incident has been reported for ${child.fullName}`,
-          priority: incident.severity === "high" ? "high" : "medium",
-          metadata: {
-            incidentId: incident._id,
-          },
-        });
-
-        await notification.save();
-      }
-
-      res.status(201).json({
-        message: "Incident report created successfully",
-        incident,
-      });
-    } catch (error) {
-      res.status(500).json({
-        message: "Error creating incident report",
-        error: error.message,
-      });
+    if (!child) {
+      return res.status(404).json({ message: "Child not found" });
     }
+
+    // Save incident to database
+    const [result] = await db.query(
+      "INSERT INTO incident_report (child_id, reported_by, incident_type, description, target) VALUES (?, ?, ?, ?, ?)",
+      [child_id, req.user.id, incident_type, description, target]
+    );
+
+    // If target is parent, send email
+    if (target === "parent" && child.parent_email) {
+      try {
+        await sendIncidentEmail(
+          child.parent_email,
+          child.full_name,
+          incident_type,
+          description,
+          child.parent_name
+        );
+      } catch (emailError) {
+        console.error("Failed to send email:", emailError);
+        // We still return success since the incident was saved
+        return res.status(201).json({
+          message: "Incident saved but email notification failed",
+          id: result.insertId,
+        });
+      }
+    }
+
+    res.status(201).json({
+      message: "Incident reported successfully",
+      id: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error reporting incident:", error);
+    res.status(500).json({ message: "Failed to report incident" });
   }
-);
+});
 
 // Update incident report
 router.put(
@@ -246,6 +222,22 @@ router.get("/summary", [auth, authorize("manager")], async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error generating incident summary",
+      error: error.message,
+    });
+  }
+});
+
+// Get incident reports for a child
+router.get("/child/:childId", auth, async (req, res) => {
+  try {
+    const incidents = await IncidentReport.getChildIncidents(
+      req.params.childId
+    );
+    res.json(incidents);
+  } catch (error) {
+    console.error("Error fetching incident reports:", error);
+    res.status(500).json({
+      message: "Error fetching incident reports",
       error: error.message,
     });
   }

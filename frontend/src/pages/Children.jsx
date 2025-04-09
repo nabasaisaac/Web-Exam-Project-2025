@@ -33,14 +33,17 @@ const Children = () => {
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/children?babysitterId=${user.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        const url =
+          user.role === "babysitter"
+            ? `http://localhost:5000/api/children?babysitterId=${user.id}`
+            : "http://localhost:5000/api/children";
+
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        // console.log(response.data)
         setChildren(response.data);
       } catch (error) {
         console.error("Error fetching children:", error);
@@ -49,7 +52,7 @@ const Children = () => {
     };
 
     fetchChildren();
-  }, [user.id]);
+  }, [user.id, user.role]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -356,7 +359,7 @@ const Children = () => {
                           <div className="flex-shrink-0">
                             <div
                               className={`h-3 w-3 rounded-full ${
-                                child.status === "present"
+                                child.is_active === 1
                                   ? "bg-green-400"
                                   : "bg-red-400"
                               }`}
@@ -407,6 +410,9 @@ const Children = () => {
             setShowChildDetails(false);
             setSelectedChild(null);
           }}
+          setChildren={setChildren}
+          children={children}
+          user={user}
         />
       )}
     </div>

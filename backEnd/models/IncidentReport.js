@@ -7,22 +7,15 @@ const pool = require("../config/database");
  */
 async function createIncidentReport(incidentData) {
   const [result] = await pool.execute(
-    `INSERT INTO incident_reports (
-      child_id, reported_by, date, incident_type,
-      description, severity, action_taken,
-      parent_notified, follow_up_required, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO incident_report (
+      child_id, reported_by, target, incident_type, description
+    ) VALUES (?, ?, ?, ?, ?)`,
     [
-      incidentData.childId,
-      incidentData.reportedBy,
-      incidentData.date,
-      incidentData.incidentType,
+      incidentData.child_id,
+      incidentData.reported_by,
+      incidentData.target,
+      incidentData.incident_type,
       incidentData.description,
-      incidentData.severity,
-      incidentData.actionTaken,
-      incidentData.parentNotified || false,
-      incidentData.followUpRequired || false,
-      incidentData.status || "open",
     ]
   );
   return result.insertId;
@@ -135,6 +128,23 @@ async function getIncidentReportSummary(filters = {}) {
   return summary[0];
 }
 
+/**
+ * Gets all incident reports for a specific child
+ * @param {number} childId - The ID of the child
+ * @returns {Promise<Array>} - Array of incident reports
+ */
+async function getChildIncidents(childId) {
+  const [rows] = await pool.execute(
+    `SELECT ir.*, u.username as reporter_name 
+     FROM incident_report ir
+     JOIN users u ON ir.reported_by = u.id
+     WHERE ir.child_id = ?
+     ORDER BY ir.created_at DESC`,
+    [childId]
+  );
+  return rows;
+}
+
 // Export all functions
 module.exports = {
   createIncidentReport,
@@ -142,4 +152,5 @@ module.exports = {
   findAllIncidentReports,
   updateIncidentReport,
   getIncidentReportSummary,
+  getChildIncidents,
 };
