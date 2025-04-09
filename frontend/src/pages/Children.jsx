@@ -1,13 +1,17 @@
 import React, { useState, useContext, useEffect } from "react";
-import { FaTimes, FaBaby } from "react-icons/fa";
+import { FaTimes, FaBaby, FaInfoCircle } from "react-icons/fa";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
+import BabysitterActions from "../components/BabysitterActions";
+import ChildDetails from "../components/ChildDetails";
 import "../styles/auth.css";
 
 const Children = () => {
   const { user } = useContext(AuthContext);
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [showChildDetails, setShowChildDetails] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [children, setChildren] = useState([]);
   const [formData, setFormData] = useState({
@@ -29,14 +33,17 @@ const Children = () => {
   useEffect(() => {
     const fetchChildren = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/children?babysitterId=${user.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        const url =
+          user.role === "babysitter"
+            ? `http://localhost:5000/api/children?babysitterId=${user.id}`
+            : "http://localhost:5000/api/children";
+
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        // console.log(response.data)
         setChildren(response.data);
       } catch (error) {
         console.error("Error fetching children:", error);
@@ -45,7 +52,7 @@ const Children = () => {
     };
 
     fetchChildren();
-  }, [user.id]);
+  }, [user.id, user.role]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -165,6 +172,24 @@ const Children = () => {
         ...prevErrors,
         [name]: "",
       }));
+    }
+  };
+
+  const handleChildDetails = async (childId) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/children/${childId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setSelectedChild(response.data);
+      setShowChildDetails(true);
+    } catch (error) {
+      console.error("Error fetching child details:", error);
+      toast.error("Failed to fetch child details");
     }
   };
 
@@ -319,7 +344,7 @@ const Children = () => {
                   No Children Registered Yet
                 </h3>
                 <p className="text-gray-500">
-                  Start by registering your first child using the button above.
+                  Start by registering your first child now!.
                 </p>
               </div>
             </div>
@@ -334,7 +359,7 @@ const Children = () => {
                           <div className="flex-shrink-0">
                             <div
                               className={`h-3 w-3 rounded-full ${
-                                child.status === "present"
+                                child.is_active === 1
                                   ? "bg-green-400"
                                   : "bg-red-400"
                               }`}
@@ -349,14 +374,14 @@ const Children = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="ml-6 flex items-center space-x-4">
-                          <button className="text-indigo-600 hover:text-indigo-900">
-                            Edit
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            Remove
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleChildDetails(child.id)}
+                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg
+                           hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                        >
+                          <FaInfoCircle className="text-xl" />
+                          <span>View Details</span>
+                        </button>
                       </div>
                       <div className="mt-2">
                         <p className="text-sm text-gray-500">
@@ -376,6 +401,20 @@ const Children = () => {
           )}
         </div>
       </div>
+
+      {/* Child Details Modal */}
+      {showChildDetails && selectedChild && (
+        <ChildDetails
+          child={selectedChild}
+          onClose={() => {
+            setShowChildDetails(false);
+            setSelectedChild(null);
+          }}
+          setChildren={setChildren}
+          children={children}
+          user={user}
+        />
+      )}
     </div>
   );
 };

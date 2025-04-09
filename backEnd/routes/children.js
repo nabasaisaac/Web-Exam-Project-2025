@@ -6,6 +6,9 @@ const Child = require("../models/Child");
 const Attendance = require("../models/Attendance");
 const IncidentReport = require("../models/IncidentReport");
 const FinancialTransaction = require("../models/FinancialTransaction");
+const Babysitter = require("../models/Babysitter");
+const db = require("../config/database");
+const { sendAttendanceEmail } = require("../services/attendanceEmailService");
 
 // Get all children
 router.get("/", auth, async (req, res) => {
@@ -95,8 +98,18 @@ router.get("/:id", auth, async (req, res) => {
     if (!child) {
       return res.status(404).json({ message: "Child not found" });
     }
+
+    // Get the babysitter details if assigned
+    if (child.assigned_babysitter_id) {
+      const babysitter = await Babysitter.findBabysitterById(
+        child.assigned_babysitter_id
+      );
+      child.assigned_babysitter = babysitter;
+    }
+
     res.json(child);
   } catch (error) {
+    console.error("Error fetching child:", error);
     res
       .status(500)
       .json({ message: "Error fetching child", error: error.message });
@@ -202,6 +215,56 @@ router.get("/:id/payments", auth, async (req, res) => {
       message: "Error fetching payment history",
       error: error.message,
     });
+  }
+});
+
+// Update child attendance status
+router.post("/:id/attendance", auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const childId = req.params.id;
+
+    if (!status || !["check-in", "check-out"].includes(status)) {
+      return res.status(400).json({ message: "Invalid attendance status" });
+    }
+
+    // Get child details
+    const [rows] = await db.query("SELECT * FROM children WHERE id = ?", [
+      childId,
+    ]);
+    const child = rows[0];
+
+    if (!child) {
+      return res.status(404).json({ message: "Child not found" });
+    }
+
+    // Update is_active status
+    const isActive = status === "check-in";
+    await db.query("UPDATE children SET is_active = ? WHERE id = ?", [
+      isActive,
+      childId,
+    ]);
+
+    // Send response immediately
+    res.status(200).json({
+      message: `Child ${status} successful`,
+      is_active: isActive,
+    });
+
+    // Send email notification to parent asynchronously
+    if (child.parent_email) {
+      sendAttendanceEmail(
+        child.parent_email,
+        child.full_name,
+        status,
+        child.parent_name
+      ).catch((error) => {
+        console.error("Email sending failed:", error.message);
+      });
+    }
+  } catch (error) {
+    console.error("Error updating attendance:", error);
+    res.status(500).json({ message: "Failed to update attendance" });
   }
 });
 

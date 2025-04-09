@@ -38,13 +38,11 @@ async function findChildById(id) {
 }
 
 /**
- * Retrieves all active children
+ * Retrieves all children
  * @returns {Promise<Array>} - Array of child objects
  */
 async function findAllChildren() {
-  const [rows] = await pool.execute(
-    "SELECT * FROM children WHERE is_active = TRUE"
-  );
+  const [rows] = await pool.execute("SELECT * FROM children");
   return rows;
 }
 
@@ -114,7 +112,7 @@ async function getChildIncidents(id) {
  */
 async function findChildrenByBabysitter(babysitterId) {
   const [rows] = await pool.execute(
-    "SELECT * FROM children WHERE assigned_babysitter_id = ? AND is_active = TRUE",
+    "SELECT * FROM children WHERE assigned_babysitter_id = ?",
     [babysitterId]
   );
   return rows;
