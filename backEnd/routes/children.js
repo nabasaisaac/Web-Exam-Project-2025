@@ -8,6 +8,7 @@ const IncidentReport = require("../models/IncidentReport");
 const FinancialTransaction = require("../models/FinancialTransaction");
 const Babysitter = require("../models/Babysitter");
 const db = require("../config/database");
+const { sendAttendanceEmail } = require("../services/attendanceEmailService");
 
 // Get all children
 router.get("/", auth, async (req, res) => {
@@ -217,37 +218,53 @@ router.get("/:id/payments", auth, async (req, res) => {
   }
 });
 
-// Update child attendance
+// Update child attendance status
 router.post("/:id/attendance", auth, async (req, res) => {
   try {
     const { status } = req.body;
     const childId = req.params.id;
 
-    // Validate status
-    if (!["check-in", "check-out"].includes(status)) {
+    if (!status || !["check-in", "check-out"].includes(status)) {
       return res.status(400).json({ message: "Invalid attendance status" });
     }
 
-    // Update child's is_active status
-    // true for check-in, false for check-out
-    const isActive = status === "check-in";
-    const query = "UPDATE children SET is_active = ? WHERE id = ?";
-    await db.query(query, [isActive, childId]);
-
-    // Get updated child data
-    const child = await Child.findChildById(childId);
+    // Get child details
+    const [rows] = await db.query("SELECT * FROM children WHERE id = ?", [
+      childId,
+    ]);
+    const child = rows[0];
 
     if (!child) {
       return res.status(404).json({ message: "Child not found" });
     }
 
-    res.json({
-      message: "Attendance updated successfully",
-      status: child.is_active ? "check-in" : "check-out",
+    // Update is_active status
+    const isActive = status === "check-in";
+    await db.query("UPDATE children SET is_active = ? WHERE id = ?", [
+      isActive,
+      childId,
+    ]);
+
+    // Send response immediately
+    res.status(200).json({
+      message: `Child ${status} successful`,
+      is_active: isActive,
     });
+
+    // Send email notification to parent asynchronously
+    if (child.parent_email) {
+      sendAttendanceEmail(
+        child.parent_email,
+        child.full_name,
+        status,
+        child.parent_name
+      ).catch((error) => {
+        console.error("Email sending failed:", error.message);
+      });
+    }
   } catch (error) {
     console.error("Error updating attendance:", error);
-    res.status(500).json({ message: "Error updating attendance" });
+    res.status(500).json({ message: "Failed to update attendance" });
   }
 });
 

@@ -78,15 +78,19 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
     setIsSubmittingIncident(true);
     setError("");
 
+    const requestData = {
+      child_id: child.id,
+      incident_type: incidentData.incidentType,
+      description: incidentData.description,
+      target: incidentData.target,
+    };
+
+    console.log("Sending incident report:", requestData);
+
     try {
       const response = await axios.post(
         "http://localhost:5000/api/incidents",
-        {
-          child_id: child.id,
-          incident_type: incidentData.incidentType,
-          description: incidentData.description,
-          target: incidentData.target,
-        },
+        requestData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -94,6 +98,7 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
         }
       );
 
+      console.log("Server response:", response.data);
       const { data } = response;
 
       if (data.message.includes("but email notification failed")) {
@@ -113,7 +118,11 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
         target: "manager",
       });
     } catch (err) {
-      console.error("Error details:", err.response?.data || err.message);
+      console.error("Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.message || err.message);
       toast.error(
         err.response?.data?.message || "Failed to submit incident report"

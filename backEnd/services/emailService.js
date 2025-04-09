@@ -1,12 +1,27 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
+// Create reusable transporter object
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+// Verify transporter configuration
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error("Email transporter verification failed:", error);
+  } else {
+    console.log("Email server is ready to send messages");
+  }
 });
 
 const sendIncidentEmail = async (
@@ -16,6 +31,14 @@ const sendIncidentEmail = async (
   description,
   parentName
 ) => {
+  console.log("Attempting to send email with configuration:", {
+    from: process.env.EMAIL_USER,
+    to: parentEmail,
+    parentName,
+    childName,
+    incidentType,
+  });
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: parentEmail,
@@ -25,20 +48,33 @@ const sendIncidentEmail = async (
       <p>Dear ${parentName},</p>
       <p>We are writing to inform you about an incident involving your child:</p>
       <p><strong>Child:</strong> ${childName}</p>
-      <p><strong>Type:</strong> ${incidentType}</p>
+      <p><strong>Incident Type:</strong> ${incidentType}</p>
       <p><strong>Description:</strong> ${description}</p>
       <br>
-      <p>If you have any concerns or questions, please contact the daycare center directly.</p>
-      <p>This is an automated message from the Daycare Management System, please do not reply to this email.</p>
+      <p>If you have any concerns or questions, please contact us at ${process.env.EMAIL_USER}.</p>
+
     `,
   };
 
   try {
+    console.log("Sending email with options:", {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+    });
+
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
+    console.log("Email sent successfully");
     return true;
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Detailed email error:", {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorCommand: error.command,
+      errorResponse: error.response,
+      stack: error.stack,
+    });
     throw error;
   }
 };

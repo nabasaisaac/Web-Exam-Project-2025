@@ -12,11 +12,13 @@ const { sendIncidentEmail } = require("../services/emailService");
 router.post("/", [auth, authorize("babysitter")], async (req, res) => {
   try {
     const { child_id, incident_type, description, target } = req.body;
+    console.log("Processing incident report for child:", child_id);
 
     // Get child details directly from children table
-    const [child] = await db.query("SELECT * FROM children WHERE id = ?", [
+    const [rows] = await db.query("SELECT * FROM children WHERE id = ?", [
       child_id,
     ]);
+    const child = rows[0];
 
     if (!child) {
       return res.status(404).json({ message: "Child not found" });
@@ -28,30 +30,24 @@ router.post("/", [auth, authorize("babysitter")], async (req, res) => {
       [child_id, req.user.id, incident_type, description, target]
     );
 
-    // If target is parent, send email
-    if (target === "parent" && child.parent_email) {
-      try {
-        await sendIncidentEmail(
-          child.parent_email,
-          child.full_name,
-          incident_type,
-          description,
-          child.parent_name
-        );
-      } catch (emailError) {
-        console.error("Failed to send email:", emailError);
-        // We still return success since the incident was saved
-        return res.status(201).json({
-          message: "Incident saved but email notification failed",
-          id: result.insertId,
-        });
-      }
-    }
-
+    // Send response immediately
     res.status(201).json({
       message: "Incident reported successfully",
       id: result.insertId,
     });
+
+    // Send email notification to parent asynchronously if target is parent
+    if (target === "parent" && child.parent_email) {
+      sendIncidentEmail(
+        child.parent_email,
+        child.full_name,
+        incident_type,
+        description,
+        child.parent_name
+      ).catch((error) => {
+        console.error("Email sending failed:", error.message);
+      });
+    }
   } catch (error) {
     console.error("Error reporting incident:", error);
     res.status(500).json({ message: "Failed to report incident" });
