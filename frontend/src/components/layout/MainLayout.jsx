@@ -7,43 +7,36 @@
  */
 
 import React from "react";
-import { Outlet, useParams, Navigate } from "react-router-dom";
-import Navbar from "./Navbar";
+import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import UserDropdown from "../UserDropdown";
+import { FaBell } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 
 const MainLayout = () => {
-  const { user, loading } = useAuth();
-  const { username } = useParams();
-
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  // Check if the current user matches the route username
-  const isAuthorized =
-    user && (user.username === username || user.firstName === username);
-
-  // If not authorized, redirect to login
-  if (!isAuthorized) {
-    return <Navigate to="/login" replace />;
-  }
+  const { user } = useAuth();
 
   return (
-    <div className="h-screen flex flex-col">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              <Outlet />
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white shadow-sm">
+          <div className="flex justify-between items-center px-6 py-4">
+            <h1 className="text-xl font-semibold text-gray-800">Daycare Management</h1>
+            <div className="flex items-center space-x-4">
+              <button className="text-gray-500 hover:text-gray-700 cursor-pointer">
+                <FaBell className="h-6 w-6" />
+              </button>
+              <div className="flex items-center">
+                <span className="text-sm text-gray-700 mr-3">{user?.role}</span>
+                <UserDropdown />
+              </div>
             </div>
+          </div>
+        </header>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-6 py-8">
+            <Outlet />
           </div>
         </main>
       </div>
