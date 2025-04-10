@@ -90,7 +90,9 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 overflow-y-auto">
       <div className="p-4">
-        <h2 className="text-xl font-bold mb-8 text-center">Daycare Manager</h2>
+        <h2 className="text-xl font-bold mb-8 text-center text-white">
+          Daycare Manager
+        </h2>
         <nav className="space-y-2">
           {links.map((link) => (
             <NavLink
