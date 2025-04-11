@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 SELECT * FROM babysitters;
 use daystar_daycare;
+SELECT * from notifications;
 select * from incident_report;
 DELETE FROM users WHERE id = 1;
 DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';

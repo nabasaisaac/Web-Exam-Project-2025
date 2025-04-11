@@ -62,7 +62,7 @@ const Sidebar = () => {
       {/* Fixed width sidebar */}
       <div className="flex flex-col w-64">
         {/* White background with border */}
-        <div className="flex flex-col h-0 flex-1 bg-gray-900 border-r border-gray-700">
+        <div className="flex flex-col h-0 flex-1 bg-gray-900 border-r border-gray-800">
           {/* Scrollable content area */}
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             {/* Logo section */}
@@ -87,7 +87,7 @@ const Sidebar = () => {
                     to={item.href}
                     className={`${
                       isActive
-                        ? "bg-gray-800 text-white"
+                        ? "bg-gray-800 text-white border-l-4 border-indigo-500"
                         : "text-gray-300 hover:bg-gray-800 hover:text-white"
                     } group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200`}
                   >
@@ -95,7 +95,7 @@ const Sidebar = () => {
                     <svg
                       className={`${
                         isActive
-                          ? "text-white"
+                          ? "text-indigo-500"
                           : "text-gray-400 group-hover:text-gray-300"
                       } mr-3 flex-shrink-0 h-6 w-6`}
                       xmlns="http://www.w3.org/2000/svg"

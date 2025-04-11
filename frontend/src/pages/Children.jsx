@@ -200,7 +200,8 @@ const Children = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Children</h1>
           <button
             onClick={() => setShowRegistrationForm(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent hover:bg-indigo-700 transition"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent
+             hover:bg-indigo-700 transition cursor-pointer"
           >
             Register New Child
           </button>
