@@ -31,14 +31,6 @@ const sendIncidentEmail = async (
   description,
   parentName
 ) => {
-  console.log("Attempting to send email with configuration:", {
-    from: process.env.EMAIL_USER,
-    to: parentEmail,
-    parentName,
-    childName,
-    incidentType,
-  });
-
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: parentEmail,
