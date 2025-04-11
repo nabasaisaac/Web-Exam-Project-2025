@@ -17,10 +17,14 @@ router.post(
     body("incident_type")
       .isIn(["health", "behavior", "well-being"])
       .withMessage("Invalid incident type"),
-    body("description").trim().notEmpty().withMessage("Description is required"),
+    body("description")
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required"),
     body("target").isIn(["parent", "manager"]).withMessage("Invalid target"),
   ],
   async (req, res) => {
+    console.log(req.body);
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -30,11 +34,16 @@ router.post(
       const { child_id, incident_type, description, target } = req.body;
 
       // Get child and parent details
-      const [childRows] = await db.execute(
-        `SELECT c.*, p.email as parent_email, p.name as parent_name 
-         FROM children c 
-         LEFT JOIN parents p ON c.parent_id = p.id 
-         WHERE c.id = ?`,
+      // const [childRows] = await db.execute(
+      //   `SELECT c.*, p.email as parent_email, p.name as parent_name
+      //    FROM children c
+      //    LEFT JOIN parents p ON c.parent_id = p.id
+      //    WHERE c.id = ?`,
+      //   [child_id]
+      // );
+
+      const [childRows] = await db.query(
+        "SELECT * FROM children WHERE id = ?",
         [child_id]
       );
 
@@ -46,7 +55,7 @@ router.post(
 
       // Insert incident report
       const [result] = await db.execute(
-        `INSERT INTO incidents 
+        `INSERT INTO incident_report 
          (child_id, incident_type, description, reported_by, target) 
          VALUES (?, ?, ?, ?, ?)`,
         [child_id, incident_type, description, req.user.id, target]
