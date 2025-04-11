@@ -341,10 +341,11 @@ const Children = () => {
               <div className="flex flex-col items-center justify-center space-y-4">
                 <FaBaby className="text-6xl text-indigo-400" />
                 <h3 className="text-xl font-medium text-gray-900">
-                  No Children Assigned to you yet! 
+                  No Children Assigned to you yet!
                 </h3>
                 <p className="text-gray-500">
-                  Start by registering your first child now or contact manager to assign you a child.
+                  Start by registering your first child now or contact manager
+                  to assign you a child.
                 </p>
               </div>
             </div>

@@ -80,13 +80,12 @@ router.post(
 // Get babysitter by ID
 router.get("/:id", auth, async (req, res) => {
   try {
-    const babysitter = await Babysitter.findBabysitterById(req.params.id);
+    const babysitter = await Babysitter.findById(req.params.id);
     if (!babysitter) {
       return res.status(404).json({ message: "Babysitter not found" });
     }
     res.json(babysitter);
   } catch (error) {
-    console.error("Error fetching babysitter:", error);
     res
       .status(500)
       .json({ message: "Error fetching babysitter", error: error.message });
