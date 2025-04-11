@@ -5,13 +5,17 @@ const { auth, authorize } = require("../middleware/auth");
 const Babysitter = require("../models/Babysitter");
 const FinancialTransaction = require("../models/FinancialTransaction");
 const Attendance = require("../models/Attendance");
+const db = require("../config/database");
 
 // Get all babysitters
-router.get("/", auth, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const babysitters = await Babysitter.find({ isActive: true });
+    const [babysitters] = await db.query(
+      "SELECT id, first_name, last_name, email, phone_number FROM babysitters WHERE is_active = 1"
+    );
     res.json(babysitters);
   } catch (error) {
+    console.error("Error fetching babysitters:", error);
     res
       .status(500)
       .json({ message: "Error fetching babysitters", error: error.message });

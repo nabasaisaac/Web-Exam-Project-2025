@@ -104,7 +104,9 @@ router.get("/:id", auth, async (req, res) => {
       const babysitter = await Babysitter.findBabysitterById(
         child.assigned_babysitter_id
       );
-      child.assigned_babysitter = babysitter;
+      if (babysitter) {
+        child.babysitter_name = `${babysitter.first_name} ${babysitter.last_name}`;
+      }
     }
 
     res.json(child);
