@@ -90,8 +90,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   type ENUM('payment-reminder', 'payment-overdue', 'incident-report', 'attendance-update', 'system-alert') NOT NULL,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  read_at DATETIME,
-  sent_at DATETIME,
+  target VARCHAR(25) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ); 
 

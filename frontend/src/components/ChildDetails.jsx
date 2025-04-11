@@ -68,9 +68,22 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
         }
       );
 
-      // Update the children list
+      // Update the children list with the complete updated child data
       const updatedChildren = children.map((c) =>
-        c.id === child.id ? { ...c, ...editedChild } : c
+        c.id === child.id
+          ? {
+              ...c,
+              full_name: editedChild.full_name,
+              age: editedChild.age,
+              parent_name: editedChild.parent_name,
+              parent_phone: editedChild.parent_phone,
+              parent_email: editedChild.parent_email,
+              special_care_needs: editedChild.special_care_needs,
+              session_type: editedChild.session_type,
+              assigned_babysitter_id: editedChild.assigned_babysitter_id,
+              babysitter_name: editedChild.babysitter_name,
+            }
+          : c
       );
       setChildren(updatedChildren);
       setIsEditing(false);
@@ -486,7 +499,8 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
                     <div className="pt-4 border-t border-gray-200">
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:border-[#4299e1] flex items-center justify-center space-x-2 cursor-pointer"
+                        className="w-full px-4 py-2 border-1 border-indigo-600 text-indigo-600 rounded-lg
+                         hover:bg-indigo-700 focus:outline-none focus:border-[#4299e1] flex items-center justify-center space-x-2 cursor-pointer"
                       >
                         <FaEdit />
                         <span>Update Child Details</span>
