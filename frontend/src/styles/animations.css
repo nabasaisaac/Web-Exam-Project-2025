@@ -7,9 +7,9 @@
   }
 }
 
-@keyframes slideIn {
+@keyframes slideUp {
   from {
-    transform: translateY(-20px);
+    transform: translateY(20px);
     opacity: 0;
   }
   to {
@@ -18,10 +18,10 @@
   }
 }
 
-.modal-fade-in {
+.animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-.modal-content-slide-in {
-  animation: slideIn 0.3s ease-in-out;
+.animate-slide-up {
+  animation: slideUp 0.3s ease-in-out;
 }

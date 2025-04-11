@@ -52,10 +52,12 @@ const Dashboard = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              Welcome back, {user.firstName.split(" ")
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ")
-            }!
+              Welcome back,{" "}
+              {user.firstName
+                .split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ")}
+              !
             </h2>
             <p className="text-gray-500">
               {user.role === "manager"

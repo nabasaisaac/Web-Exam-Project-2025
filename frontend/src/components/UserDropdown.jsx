@@ -42,35 +42,25 @@ const UserDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full cursor-pointer hover:opacity-90 transition-opacity"
+        className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white cursor-pointer hover:bg-indigo-700 transition-colors"
       >
-        <img
-          className="h-10 w-10 rounded-full"
-          src={`https://ui-avatars.com/api/?name=${
-            user?.firstName || user?.username
-          }&background=6366f1&color=fff`}
-          alt={user?.firstName || user?.username}
-        />
+        {initials}
       </button>
 
-      <div
-        className={`absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 transform transition-all duration-200 ease-in-out ${
-          isOpen
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-2 pointer-events-none"
-        }`}
-      >
-        <div className="px-4 py-2 text-sm text-gray-700 border-b">
-          {user?.firstName || user?.username}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+          <div className="px-4 py-2 text-sm text-gray-700 border-b">
+            {user?.firstName || user?.username}
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+          >
+            <FaSignOutAlt className="mr-2" />
+            Logout
+          </button>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-        >
-          <FaSignOutAlt className="mr-2" />
-          Logout
-        </button>
-      </div>
+      )}
     </div>
   );
 };

@@ -42,11 +42,11 @@ function App() {
         <Routes>
           {/* Redirect root path to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
-
+          
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-
+          
           {/* Protected routes */}
           <Route path="/:username" element={<MainLayout />}>
             <Route

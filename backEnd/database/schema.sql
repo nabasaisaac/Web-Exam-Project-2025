@@ -79,22 +79,10 @@ CREATE TABLE IF NOT EXISTS incident_report (
   status BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (child_id) REFERENCES children(id),
-  FOREIGN KEY (reported_by) REFERENCES users(id)
+  FOREIGN KEY (reported_by) REFERENCES babysitters(id)
 );
 
-DROP TABLE incident_report;
--- CREATE TABLE IF NOT EXISTS parent_incident_report (
---   id INT AUTO_INCREMENT PRIMARY KEY,
---   child_id INT NOT NULL,
---   reported_by INT NOT NULL,
---   incident_type VARCHAR(20),
---   description TEXT NOT NULL,
---   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---   FOREIGN KEY (child_id) REFERENCES children(id),
---   FOREIGN KEY (reported_by) REFERENCES users(id)
--- );
 
--- DROP TABLE parent_incident_report;
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   recipient_id INT NOT NULL,
@@ -102,15 +90,13 @@ CREATE TABLE IF NOT EXISTS notifications (
   type ENUM('payment-reminder', 'payment-overdue', 'incident-report', 'attendance-update', 'system-alert') NOT NULL,
   title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
-  status ENUM('pending', 'sent', 'read', 'failed') DEFAULT 'pending',
-  read_at DATETIME,
-  sent_at DATETIME,
+  target VARCHAR(25) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ); 
 
 SELECT * FROM babysitters;
 use daystar_daycare;
+SELECT * from notifications;
 select * from incident_report;
 DELETE FROM users WHERE id = 1;
 DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';
