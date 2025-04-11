@@ -68,11 +68,29 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
         }
       );
 
-      // Update the children list
+      // Update the children list with the complete updated child data
       const updatedChildren = children.map((c) =>
-        c.id === child.id ? { ...c, ...editedChild } : c
+        c.id === child.id
+          ? {
+              ...c,
+              ...editedChild,
+              babysitter_name: editedChild.babysitter_name, // Ensure babysitter name is updated
+            }
+          : c
       );
       setChildren(updatedChildren);
+
+      // Update the current child object to reflect changes immediately
+      child.full_name = editedChild.full_name;
+      child.age = editedChild.age;
+      child.parent_name = editedChild.parent_name;
+      child.parent_phone = editedChild.parent_phone;
+      child.parent_email = editedChild.parent_email;
+      child.special_care_needs = editedChild.special_care_needs;
+      child.session_type = editedChild.session_type;
+      child.assigned_babysitter_id = editedChild.assigned_babysitter_id;
+      child.babysitter_name = editedChild.babysitter_name;
+
       setIsEditing(false);
       toast.success("Child details updated successfully!");
     } catch (error) {

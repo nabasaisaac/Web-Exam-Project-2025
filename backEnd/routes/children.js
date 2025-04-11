@@ -130,6 +130,7 @@ router.put(
     body("parentDetails.phoneNumber").optional().trim().notEmpty(),
     body("parentDetails.email").optional().isEmail(),
     body("sessionType").optional().isIn(["half-day", "full-day"]),
+    body("assignedBabysitterId").optional().isInt(),
   ],
   async (req, res) => {
     try {
@@ -146,16 +147,40 @@ router.put(
         parent_email: req.body.parentDetails?.email,
         special_care_needs: req.body.specialNeeds,
         session_type: req.body.sessionType,
+        assigned_babysitter_id: req.body.assignedBabysitterId,
       };
 
-      await Child.updateChild(req.params.id, updates);
-      const child = await Child.findChildById(req.params.id);
+      // Remove undefined values
+      Object.keys(updates).forEach(
+        (key) => updates[key] === undefined && delete updates[key]
+      );
+
+      // Build the SQL query
+      const fields = Object.keys(updates)
+        .map((key) => `${key} = ?`)
+        .join(", ");
+      const values = Object.values(updates);
+      values.push(req.params.id);
+
+      // Update the child
+      await db.execute(`UPDATE children SET ${fields} WHERE id = ?`, values);
+
+      // Get the updated child with babysitter details
+      const [updatedChild] = await db.execute(
+        `SELECT c.*, 
+         CONCAT(b.first_name, ' ', b.last_name) as babysitter_name
+         FROM children c
+         LEFT JOIN babysitters b ON c.assigned_babysitter_id = b.id
+         WHERE c.id = ?`,
+        [req.params.id]
+      );
 
       res.json({
         message: "Child updated successfully",
-        child,
+        child: updatedChild[0],
       });
     } catch (error) {
+      console.error("Error updating child:", error);
       res
         .status(500)
         .json({ message: "Error updating child", error: error.message });

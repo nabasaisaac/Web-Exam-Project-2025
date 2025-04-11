@@ -9,50 +9,85 @@ const db = require("../config/database");
 const { sendIncidentEmail } = require("../services/emailService");
 
 // Create incident report
-router.post("/", [auth, authorize("babysitter")], async (req, res) => {
-  try {
-    const { child_id, incident_type, description, target } = req.body;
-    console.log("Processing incident report for child:", child_id);
+router.post(
+  "/",
+  [
+    auth,
+    body("child_id").isInt().withMessage("Child ID is required"),
+    body("incident_type")
+      .isIn(["health", "behavior", "well-being"])
+      .withMessage("Invalid incident type"),
+    body("description").trim().notEmpty().withMessage("Description is required"),
+    body("target").isIn(["parent", "manager"]).withMessage("Invalid target"),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-    // Get child details directly from children table
-    const [rows] = await db.query("SELECT * FROM children WHERE id = ?", [
-      child_id,
-    ]);
-    const child = rows[0];
+      const { child_id, incident_type, description, target } = req.body;
 
-    if (!child) {
-      return res.status(404).json({ message: "Child not found" });
-    }
+      // Get child and parent details
+      const [childRows] = await db.execute(
+        `SELECT c.*, p.email as parent_email, p.name as parent_name 
+         FROM children c 
+         LEFT JOIN parents p ON c.parent_id = p.id 
+         WHERE c.id = ?`,
+        [child_id]
+      );
 
-    // Save incident to database
-    const [result] = await db.query(
-      "INSERT INTO incident_report (child_id, reported_by, incident_type, description, target) VALUES (?, ?, ?, ?, ?)",
-      [child_id, req.user.id, incident_type, description, target]
-    );
+      if (childRows.length === 0) {
+        return res.status(404).json({ message: "Child not found" });
+      }
 
-    // Send response immediately
-    res.status(201).json({
-      message: "Incident reported successfully",
-      id: result.insertId,
-    });
+      const child = childRows[0];
 
-    // Send email notification to parent asynchronously if target is parent
-    if (target === "parent" && child.parent_email) {
-      sendIncidentEmail(
-        child.parent_email,
-        child.full_name,
-        incident_type,
-        description,
-        child.parent_name
-      ).catch((error) => {
-        console.error("Email sending failed:", error.message);
+      // Insert incident report
+      const [result] = await db.execute(
+        `INSERT INTO incidents 
+         (child_id, incident_type, description, reported_by, target) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [child_id, incident_type, description, req.user.id, target]
+      );
+
+      // Send email notification if target is parent
+      if (target === "parent" && child.parent_email) {
+        try {
+          await sendIncidentEmail(
+            child.parent_email,
+            child.full_name,
+            incident_type,
+            description,
+            child.parent_name
+          );
+          res.json({
+            message: "Incident report submitted and email sent to parent",
+            incidentId: result.insertId,
+          });
+        } catch (emailError) {
+          console.error("Email sending failed:", emailError);
+          res.json({
+            message: "Incident saved but email notification failed",
+            incidentId: result.insertId,
+          });
+        }
+      } else {
+        res.json({
+          message: "Incident report submitted successfully",
+          incidentId: result.insertId,
+        });
+      }
+    } catch (error) {
+      console.error("Error creating incident:", error);
+      res.status(500).json({
+        message: "Error creating incident report",
+        error: error.message,
       });
     }
-  } catch (error) {
-    console.error("Error reporting incident:", error);
-    res.status(500).json({ message: "Failed to report incident" });
   }
-});
+);
 
 // Update incident report
 router.put(
@@ -223,17 +258,24 @@ router.get("/summary", [auth, authorize("manager")], async (req, res) => {
   }
 });
 
-// Get incident reports for a child
+// Get incidents for a child
 router.get("/child/:childId", auth, async (req, res) => {
   try {
-    const incidents = await IncidentReport.getChildIncidents(
-      req.params.childId
+    const [incidents] = await db.execute(
+      `SELECT i.*, 
+       CONCAT(u.first_name, ' ', u.last_name) as reported_by_name
+       FROM incidents i
+       LEFT JOIN users u ON i.reported_by = u.id
+       WHERE i.child_id = ?
+       ORDER BY i.created_at DESC`,
+      [req.params.childId]
     );
+
     res.json(incidents);
   } catch (error) {
-    console.error("Error fetching incident reports:", error);
+    console.error("Error fetching incidents:", error);
     res.status(500).json({
-      message: "Error fetching incident reports",
+      message: "Error fetching incidents",
       error: error.message,
     });
   }
