@@ -19,7 +19,6 @@ app.use("/api/children", require("./routes/children"));
 app.use("/api/financial", require("./routes/finance"));
 app.use("/api/attendance", require("./routes/attendance"));
 app.use("/api/incidents", require("./routes/incidents"));
-app.use("/api/notifications", require("./routes/notifications"));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

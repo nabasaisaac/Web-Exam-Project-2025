@@ -15,6 +15,7 @@ import Children from "./pages/Children";
 import Babysitters from "./pages/Babysitters";
 import Finance from "./pages/Finance";
 import Reports from "./pages/Reports";
+import NotificationList from "./components/notifications/NotificationList";
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -42,11 +43,11 @@ function App() {
         <Routes>
           {/* Redirect root path to login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
-          
+
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          
+
           {/* Protected routes */}
           <Route path="/:username" element={<MainLayout />}>
             <Route
@@ -94,6 +95,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationList />
                 </ProtectedRoute>
               }
             />

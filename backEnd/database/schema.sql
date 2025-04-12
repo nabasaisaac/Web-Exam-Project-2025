@@ -94,7 +94,9 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ); 
 
+
 SELECT * FROM babysitters;
+select * from children;
 use daystar_daycare;
 SELECT * from notifications;
 select * from incident_report;

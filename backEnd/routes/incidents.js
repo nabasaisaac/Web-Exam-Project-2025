@@ -4,7 +4,7 @@ const { body, validationResult } = require("express-validator");
 const { auth, authorize } = require("../middleware/auth");
 const IncidentReport = require("../models/IncidentReport");
 const Child = require("../models/Child");
-const Notification = require("../models/Notification");
+// const Notification = require("../models/Notification");
 const db = require("../config/database");
 const { sendIncidentEmail } = require("../services/emailService");
 
@@ -15,7 +15,13 @@ router.post(
     auth,
     body("child_id").isInt().withMessage("Child ID is required"),
     body("incident_type")
-      .isIn(["health", "behavior", "well-being", "payment-reminder", "payment-overdue"])
+      .isIn([
+        "health",
+        "behavior",
+        "well-being",
+        "payment-reminder",
+        "payment-overdue",
+      ])
       .withMessage("Invalid incident type"),
     body("description")
       .trim()
@@ -289,5 +295,131 @@ router.get("/child/:childId", auth, async (req, res) => {
     });
   }
 });
+
+// Get notifications for manager
+router.get("/notifications", [auth, authorize("manager")], async (req, res) => {
+  console.log("Fetching notifications for user:", req.user.id);
+  try {
+    // First verify the database connection
+    const [tables] = await db.query("SHOW TABLES");
+    console.log(
+      "Available tables:",
+      tables.map((t) => t.Tables_in_daystar_daycare)
+    );
+
+    // Verify the required tables exist
+    const requiredTables = ["incident_report", "children", "babysitters"];
+    const missingTables = requiredTables.filter(
+      (table) => !tables.some((t) => t.Tables_in_daystar_daycare === table)
+    );
+
+    if (missingTables.length > 0) {
+      console.error("Missing required tables:", missingTables);
+      return res.status(500).json({
+        message: "Database configuration error",
+        error: `Missing required tables: ${missingTables.join(", ")}`,
+      });
+    }
+
+    // Get all notifications with child and reporter names
+    const [notifications] = await db.query(`
+      SELECT 
+        ir.id,
+        ir.child_id,
+        ir.incident_type,
+        ir.description,
+        CASE WHEN ir.status = 0 THEN 0 ELSE 1 END as status,
+        ir.created_at,
+        c.full_name as child_name,
+        CONCAT(b.first_name, ' ', b.last_name) as reported_by_name
+      FROM incident_report ir
+      LEFT JOIN children c ON ir.child_id = c.id
+      LEFT JOIN babysitters b ON ir.reported_by = b.id
+      WHERE ir.target = 'manager'
+      ORDER BY ir.status ASC, ir.created_at DESC
+    `);
+
+    console.log("Fetched notifications:", notifications);
+    res.json(notifications);
+  } catch (error) {
+    console.error("Error in notifications endpoint:", {
+      message: error.message,
+      sqlMessage: error.sqlMessage,
+      code: error.code,
+      sql: error.sql,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      message: "Error fetching notifications",
+      error: error.message,
+      sqlMessage: error.sqlMessage,
+    });
+  }
+});
+
+// Mark notification as read
+router.put("/:id/read", [auth, authorize("manager")], async (req, res) => {
+  console.log("Marking notification as read:", req.params.id);
+  try {
+    const [result] = await db.query(
+      "UPDATE incident_report SET status = TRUE WHERE id = ? AND target = 'manager'",
+      [req.params.id]
+    );
+
+    if (result.affectedRows === 0) {
+      console.log("Notification not found:", req.params.id);
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    console.log("Notification marked as read:", req.params.id);
+    res.json({ message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Error marking notification as read:", {
+      message: error.message,
+      sqlMessage: error.sqlMessage,
+      code: error.code,
+      sql: error.sql,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      message: "Error marking notification as read",
+      error: error.message,
+      sqlMessage: error.sqlMessage,
+    });
+  }
+});
+
+// Get unread notifications count
+router.get(
+  "/notifications/unread",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    console.log("Fetching unread notifications count for user:", req.user.id);
+    try {
+      const [result] = await db.query(
+        `SELECT COUNT(*) as count 
+       FROM incident_report 
+       WHERE target = 'manager' 
+       AND status = FALSE`
+      );
+
+      console.log("Unread notifications count:", result[0].count);
+      res.json({ count: result[0].count });
+    } catch (error) {
+      console.error("Error fetching unread notifications count:", {
+        message: error.message,
+        sqlMessage: error.sqlMessage,
+        code: error.code,
+        sql: error.sql,
+        stack: error.stack,
+      });
+      res.status(500).json({
+        message: "Error fetching unread notifications count",
+        error: error.message,
+        sqlMessage: error.sqlMessage,
+      });
+    }
+  }
+);
 
 module.exports = router;
