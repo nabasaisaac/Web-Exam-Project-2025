@@ -39,14 +39,22 @@ const IncidentReport = ({ child, user }) => {
         }
       );
 
-      toast.success("Incident report submitted successfully!");
+      toast.success(
+        user.role === "manager"
+          ? "Notification sent successfully!"
+          : "Incident report submitted successfully!"
+      );
       setIncidentData({
         incidentType: "health",
         description: "",
         target: user.role === "manager" ? "parent" : "manager",
       });
     } catch (error) {
-      toast.error("Failed to submit incident report");
+      toast.error(
+        user.role === "manager"
+          ? "Failed to send notification"
+          : "Failed to submit incident report"
+      );
       console.error("Incident error:", error);
     } finally {
       setIsSubmittingIncident(false);
@@ -57,13 +65,15 @@ const IncidentReport = ({ child, user }) => {
     <div className="pt-4 border-t border-gray-200 md:border-t-0 md:border-l md:pl-6">
       <div className="flex items-center space-x-2 mb-4">
         <FaExclamationTriangle className="text-yellow-500" />
-        <h3 className="text-lg font-medium">Report Incident</h3>
+        <h3 className="text-lg font-medium">
+          {user.role === "manager" ? "Send Notification" : "Report Incident"}
+        </h3>
       </div>
 
       <form onSubmit={handleIncidentSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Incident Type
+            {user.role === "manager" ? "Notification Type" : "Incident Type"}
           </label>
           <select
             name="incidentType"
@@ -75,6 +85,12 @@ const IncidentReport = ({ child, user }) => {
             <option value="health">Health</option>
             <option value="behavior">Behavior</option>
             <option value="well-being">Well-being</option>
+            {user.role === "manager" && (
+              <>
+                <option value="payment-reminder">Payment Reminder</option>
+                <option value="payment-overdue">Payment Overdue</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -106,7 +122,11 @@ const IncidentReport = ({ child, user }) => {
             onChange={handleIncidentChange}
             className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
             rows="3"
-            placeholder="Describe the incident..."
+            placeholder={
+              user.role === "manager"
+                ? "Describe the notification..."
+                : "Describe the incident..."
+            }
             required
           />
         </div>
@@ -121,7 +141,13 @@ const IncidentReport = ({ child, user }) => {
                 : "hover:bg-indigo-700"
             }`}
         >
-          {isSubmittingIncident ? "Submitting..." : "Submit Report"}
+          {isSubmittingIncident
+            ? user.role === "manager"
+              ? "Sending..."
+              : "Submitting..."
+            : user.role === "manager"
+            ? "Send Notification"
+            : "Submit Report"}
         </button>
       </form>
     </div>

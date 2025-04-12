@@ -56,19 +56,21 @@ CREATE TABLE IF NOT EXISTS attendance (
 
 CREATE TABLE IF NOT EXISTS financial_transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  babysitter_id INT,
   type ENUM('income', 'expense') NOT NULL,
-  category VARCHAR(50) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   description TEXT NOT NULL,
   date DATE NOT NULL,
-  reference_id INT,
-  reference_type ENUM('child', 'babysitter'),
   status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
   created_by INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (created_by) REFERENCES users(id)
+  FOREIGN KEY (created_by) REFERENCES users(id),
+  FOREIGN KEY (babysitter_id) REFERENCES babysitters(id)
 );
 
+SELECT * FROM financial_transactions;
+use daystar_daycare;
+DROP TABLE IF EXISTS financial_transactions;
 CREATE TABLE IF NOT EXISTS incident_report (
   id INT AUTO_INCREMENT PRIMARY KEY,
   child_id INT NOT NULL,
@@ -82,7 +84,6 @@ CREATE TABLE IF NOT EXISTS incident_report (
   FOREIGN KEY (reported_by) REFERENCES babysitters(id)
 );
 
-
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   recipient_id INT NOT NULL,
@@ -92,9 +93,22 @@ CREATE TABLE IF NOT EXISTS notifications (
   message TEXT NOT NULL,
   target VARCHAR(25) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-); 
+);
 
+CREATE TABLE IF NOT EXISTS babysitter_schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  babysitter_id INT NOT NULL,
+  date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  session_type ENUM('half-day', 'full-day') NOT NULL,
+  status ENUM('pending', 'approved', 'rejected', 'completed') DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (babysitter_id) REFERENCES babysitters(id)
+);
+SELECT * FROM babysitter_schedules;
 SELECT * FROM babysitters;
+select * from children;
 use daystar_daycare;
 SELECT * from notifications;
 select * from incident_report;
@@ -105,4 +119,19 @@ DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';
 -- INSERT INTO users (username, email, password) 
 -- VALUES ('NABASA ISAAC', 'nabasaisaac16@gmail.com', 'nabasaisaac16@gmail.com');
 
+-- Create babysitter_payments table
+CREATE TABLE IF NOT EXISTS babysitter_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    babysitter_id INT NOT NULL,
+    date DATE NOT NULL,
+    session_type ENUM('full-day', 'half-day') NOT NULL,
+    children_count INT NOT NULL DEFAULT 0,
+    amount DECIMAL(10,2) NOT NULL,
+    status ENUM('pending', 'completed') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (babysitter_id) REFERENCES babysitters(id) ON DELETE CASCADE
+);
 
+select * from babysitters;
+SELECT * FROM babysitter_payments;

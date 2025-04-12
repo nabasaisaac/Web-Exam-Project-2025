@@ -74,12 +74,24 @@ async function updateBabysitter(id, updates) {
 /**
  * Soft deletes a babysitter by setting is_active to false
  * @param {number} id - The ID of the babysitter to delete
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} - The result of the operation
  */
 async function deleteBabysitter(id) {
-  await pool.execute("UPDATE babysitters SET is_active = FALSE WHERE id = ?", [
-    id,
-  ]);
+  try {
+    const [result] = await pool.execute(
+      "UPDATE babysitters SET is_active = FALSE WHERE id = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      throw new Error("Babysitter not found");
+    }
+
+    return { success: true, message: "Babysitter deactivated successfully" };
+  } catch (error) {
+    console.error("Error in deleteBabysitter:", error);
+    throw error;
+  }
 }
 
 /**

@@ -86,6 +86,18 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
           : c
       );
       setChildren(updatedChildren);
+
+      // Update the child prop directly
+      child.full_name = editedChild.full_name;
+      child.age = editedChild.age;
+      child.parent_name = editedChild.parent_name;
+      child.parent_phone = editedChild.parent_phone;
+      child.parent_email = editedChild.parent_email;
+      child.special_care_needs = editedChild.special_care_needs;
+      child.session_type = editedChild.session_type;
+      child.assigned_babysitter_id = editedChild.assigned_babysitter_id;
+      child.babysitter_name = editedChild.babysitter_name;
+
       setIsEditing(false);
       toast.success("Child details updated successfully!");
     } catch (error) {
@@ -205,7 +217,7 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
     const { name, value } = e.target;
     setEditedChild((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "age" ? parseInt(value) || 0 : value,
     }));
   };
 
@@ -243,13 +255,13 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
 
   const handleDeleteChild = async () => {
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      title: "Delete Child",
+      text: "Are you sure you want to delete this Child?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: "Yes, I am sure",
     });
 
     if (result.isConfirmed) {
@@ -325,6 +337,8 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
                       name="age"
                       value={editedChild.age}
                       onChange={handleEditChange}
+                      min="0"
+                      max="18"
                       className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
                     />
                   </div>
