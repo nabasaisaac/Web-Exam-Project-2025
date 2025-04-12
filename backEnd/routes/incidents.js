@@ -155,142 +155,46 @@ router.put(
 router.get("/", auth, async (req, res) => {
   try {
     const { startDate, endDate, child, incidentType, status } = req.query;
-    const query = {};
+    let query = `
+      SELECT 
+        ir.*,
+        c.full_name as child_name,
+        CONCAT(b.first_name, ' ', b.last_name) as reported_by_name
+      FROM incident_report ir
+      LEFT JOIN children c ON ir.child_id = c.id
+      LEFT JOIN babysitters b ON ir.reported_by = b.id
+      WHERE 1=1
+    `;
+    const params = [];
 
     if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+      query += " AND ir.created_at BETWEEN ? AND ?";
+      params.push(startDate, endDate);
     }
 
     if (child) {
-      query.child = child;
+      query += " AND ir.child_id = ?";
+      params.push(child);
     }
 
     if (incidentType) {
-      query.incidentType = incidentType;
+      query += " AND ir.incident_type = ?";
+      params.push(incidentType);
     }
 
     if (status) {
-      query.status = status;
+      query += " AND ir.status = ?";
+      params.push(status);
     }
 
-    const incidents = await IncidentReport.find(query)
-      .populate("child", "fullName")
-      .populate("reportedBy", "username")
-      .sort({ date: -1 });
+    query += " ORDER BY ir.created_at DESC";
 
+    const [incidents] = await db.query(query, params);
     res.json(incidents);
   } catch (error) {
+    console.error("Error fetching incident reports:", error);
     res.status(500).json({
       message: "Error fetching incident reports",
-      error: error.message,
-    });
-  }
-});
-
-// Get incident report by ID
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const incident = await IncidentReport.findById(req.params.id)
-      .populate("child", "fullName parentDetails")
-      .populate("reportedBy", "username");
-
-    if (!incident) {
-      return res.status(404).json({ message: "Incident report not found" });
-    }
-
-    res.json(incident);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error fetching incident report",
-      error: error.message,
-    });
-  }
-});
-
-// Get incident summary
-router.get("/summary", [auth, authorize("manager")], async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    const query = {};
-
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
-
-    const incidents = await IncidentReport.find(query);
-
-    const summary = {
-      totalIncidents: incidents.length,
-      byType: {},
-      bySeverity: {
-        low: 0,
-        medium: 0,
-        high: 0,
-      },
-      byStatus: {
-        open: 0,
-        resolved: 0,
-        closed: 0,
-      },
-      parentNotificationRate: 0,
-    };
-
-    incidents.forEach((incident) => {
-      // Count by type
-      summary.byType[incident.incidentType] =
-        (summary.byType[incident.incidentType] || 0) + 1;
-
-      // Count by severity
-      summary.bySeverity[incident.severity]++;
-
-      // Count by status
-      summary.byStatus[incident.status]++;
-
-      // Count parent notifications
-      if (incident.parentNotified) {
-        summary.parentNotificationRate++;
-      }
-    });
-
-    // Calculate parent notification rate
-    if (summary.totalIncidents > 0) {
-      summary.parentNotificationRate =
-        (summary.parentNotificationRate / summary.totalIncidents) * 100;
-    }
-
-    res.json(summary);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error generating incident summary",
-      error: error.message,
-    });
-  }
-});
-
-// Get incidents for a child
-router.get("/child/:childId", auth, async (req, res) => {
-  try {
-    const [incidents] = await db.execute(
-      `SELECT i.*, 
-       CONCAT(u.first_name, ' ', u.last_name) as reported_by_name
-       FROM incidents i
-       LEFT JOIN users u ON i.reported_by = u.id
-       WHERE i.child_id = ?
-       ORDER BY i.created_at DESC`,
-      [req.params.childId]
-    );
-
-    res.json(incidents);
-  } catch (error) {
-    console.error("Error fetching incidents:", error);
-    res.status(500).json({
-      message: "Error fetching incidents",
       error: error.message,
     });
   }
@@ -328,8 +232,9 @@ router.get("/notifications", [auth, authorize("manager")], async (req, res) => {
         ir.child_id,
         ir.incident_type,
         ir.description,
-        CASE WHEN ir.status = 0 THEN 0 ELSE 1 END as status,
+        ir.status,
         ir.created_at,
+        ir.target,
         c.full_name as child_name,
         CONCAT(b.first_name, ' ', b.last_name) as reported_by_name
       FROM incident_report ir
@@ -340,6 +245,11 @@ router.get("/notifications", [auth, authorize("manager")], async (req, res) => {
     `);
 
     console.log("Fetched notifications:", notifications);
+
+    if (!notifications || notifications.length === 0) {
+      return res.json([]);
+    }
+
     res.json(notifications);
   } catch (error) {
     console.error("Error in notifications endpoint:", {
@@ -353,6 +263,140 @@ router.get("/notifications", [auth, authorize("manager")], async (req, res) => {
       message: "Error fetching notifications",
       error: error.message,
       sqlMessage: error.sqlMessage,
+    });
+  }
+});
+
+// Get unread notifications count
+router.get(
+  "/notifications/unread",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    console.log("Fetching unread notifications count for user:", req.user.id);
+    try {
+      const [result] = await db.query(
+        `SELECT COUNT(*) as count 
+       FROM incident_report 
+       WHERE target = 'manager' 
+       AND status = 0`
+      );
+
+      console.log("Unread notifications count:", result[0].count);
+      res.json({ count: result[0].count });
+    } catch (error) {
+      console.error("Error fetching unread notifications count:", {
+        message: error.message,
+        sqlMessage: error.sqlMessage,
+        code: error.code,
+        sql: error.sql,
+        stack: error.stack,
+      });
+      res.status(500).json({
+        message: "Error fetching unread notifications count",
+        error: error.message,
+        sqlMessage: error.sqlMessage,
+      });
+    }
+  }
+);
+
+// Get incident report by ID
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const [incidents] = await db.query(
+      `SELECT 
+        ir.*,
+        c.full_name as child_name,
+        CONCAT(b.first_name, ' ', b.last_name) as reported_by_name
+      FROM incident_report ir
+      LEFT JOIN children c ON ir.child_id = c.id
+      LEFT JOIN babysitters b ON ir.reported_by = b.id
+      WHERE ir.id = ?`,
+      [req.params.id]
+    );
+
+    if (incidents.length === 0) {
+      return res.status(404).json({ message: "Incident report not found" });
+    }
+
+    res.json(incidents[0]);
+  } catch (error) {
+    console.error("Error fetching incident report:", error);
+    res.status(500).json({
+      message: "Error fetching incident report",
+      error: error.message,
+    });
+  }
+});
+
+// Get incident summary
+router.get("/summary", [auth, authorize("manager")], async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let query = "SELECT * FROM incident_report WHERE 1=1";
+    const params = [];
+
+    if (startDate && endDate) {
+      query += " AND created_at BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    }
+
+    const [incidents] = await db.query(query, params);
+
+    const summary = {
+      totalIncidents: incidents.length,
+      byType: {},
+      byStatus: {
+        open: 0,
+        resolved: 0,
+        closed: 0,
+      },
+    };
+
+    incidents.forEach((incident) => {
+      // Count by type
+      summary.byType[incident.incident_type] =
+        (summary.byType[incident.incident_type] || 0) + 1;
+
+      // Count by status
+      if (incident.status === 0) {
+        summary.byStatus.open++;
+      } else if (incident.status === 1) {
+        summary.byStatus.resolved++;
+      } else {
+        summary.byStatus.closed++;
+      }
+    });
+
+    res.json(summary);
+  } catch (error) {
+    console.error("Error fetching incident summary:", error);
+    res.status(500).json({
+      message: "Error fetching incident summary",
+      error: error.message,
+    });
+  }
+});
+
+// Get incidents for a child
+router.get("/child/:childId", auth, async (req, res) => {
+  try {
+    const [incidents] = await db.execute(
+      `SELECT i.*, 
+       CONCAT(u.first_name, ' ', u.last_name) as reported_by_name
+       FROM incidents i
+       LEFT JOIN users u ON i.reported_by = u.id
+       WHERE i.child_id = ?
+       ORDER BY i.created_at DESC`,
+      [req.params.childId]
+    );
+
+    res.json(incidents);
+  } catch (error) {
+    console.error("Error fetching incidents:", error);
+    res.status(500).json({
+      message: "Error fetching incidents",
+      error: error.message,
     });
   }
 });
@@ -388,38 +432,5 @@ router.put("/:id/read", [auth, authorize("manager")], async (req, res) => {
     });
   }
 });
-
-// Get unread notifications count
-router.get(
-  "/notifications/unread",
-  [auth, authorize("manager")],
-  async (req, res) => {
-    console.log("Fetching unread notifications count for user:", req.user.id);
-    try {
-      const [result] = await db.query(
-        `SELECT COUNT(*) as count 
-       FROM incident_report 
-       WHERE target = 'manager' 
-       AND status = FALSE`
-      );
-
-      console.log("Unread notifications count:", result[0].count);
-      res.json({ count: result[0].count });
-    } catch (error) {
-      console.error("Error fetching unread notifications count:", {
-        message: error.message,
-        sqlMessage: error.sqlMessage,
-        code: error.code,
-        sql: error.sql,
-        stack: error.stack,
-      });
-      res.status(500).json({
-        message: "Error fetching unread notifications count",
-        error: error.message,
-        sqlMessage: error.sqlMessage,
-      });
-    }
-  }
-);
 
 module.exports = router;
