@@ -55,7 +55,7 @@ const Signup = () => {
 
   const validatePhoneNumber = (phone) => {
     // Remove any non-digit characters
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = phone.replace(/\D/g, "");
     // Check if it starts with 07 and has 10 digits
     return /^07\d{8}$/.test(cleanPhone);
   };
@@ -128,7 +128,7 @@ const Signup = () => {
         formData.password,
         "babysitter",
         {
-          phoneNumber: formData.phoneNumber.replace(/\D/g, ''), // Remove non-digits
+          phoneNumber: formData.phoneNumber.replace(/\D/g, ""), // Remove non-digits
           nin: formData.nin.toUpperCase(), // Ensure uppercase
           dateOfBirth: formData.dateOfBirth,
           nextOfKin: {
