@@ -182,218 +182,135 @@ const Babysitters = () => {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {["list", "payments", "schedules"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`${
-                  activeTab === tab
-                    ? "border-indigo-500 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Content */}
-        <div className="bg-white shadow rounded-lg">
-          {activeTab === "list" && (
-            <div className="p-6">
-              {loading ? (
-                <div className="flex justify-center items-center py-12">
-                  <FaSpinner className="animate-spin text-indigo-600 text-4xl" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-12 text-red-600">{error}</div>
-              ) : (
-                <div className="grid grid-cols-1 gap-6">
-                  {filteredBabysitters.map((babysitter) => (
-                    <div
-                      key={babysitter.id}
-                      className="bg-white border-1 border-indigo-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {babysitter.first_name} {babysitter.last_name}
-                          </h3>
-                          <div className="flex flex-col space-y-1 text-sm text-gray-500">
-                            <div>
-                              <span className="font-medium">Phone:</span>{" "}
-                              {babysitter.phone}
-                            </div>
-                            <div>
-                              <span className="font-medium">Email:</span>{" "}
-                              {babysitter.email}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedBabysitter(babysitter);
-                              setShowInfoPanel(true);
-                            }}
-                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                          >
-                            <FaInfoCircle className="mr-1.5" /> Info
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedBabysitter(babysitter);
-                              setShowScheduleForm(true);
-                            }}
-                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                          >
-                            <FaCalendarAlt className="mr-1.5" /> Schedule
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Search Bar - Moved to bottom */}
-              <div className="mt-6">
-                <div className="relative rounded-md shadow-sm">
+        <div className="bg-white shadow">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="py-6">
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Babysitters
+              </h1>
+              <nav className="-mb-px flex space-x-8 mt-6">
+                {["list", "payments", "schedules"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`${
+                      activeTab === tab
+                        ? "border-indigo-500 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+              <div className="mt-4">
+                <div className="relative">
                   <input
                     type="text"
+                    placeholder="Search babysitters..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search babysitters by name, phone, or email..."
-                    className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-full rounded-md border border-gray-300 py-1.5 pl-10 pr-3 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm sm:leading-6"
                   />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <FaSearch className="h-5 w-5 text-gray-400" />
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        </div>
 
-          {activeTab === "payments" && (
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Payment Records
-              </h2>
-              <div className="space-y-4">
-                {babysitters.length > 0 ? (
-                  babysitters.map((babysitter) => (
-                    <div
-                      key={babysitter.id}
-                      className="bg-gray-50 p-4 rounded-lg"
-                    >
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        {babysitter.first_name} {babysitter.last_name}
-                      </h3>
-                      <div className="space-y-2">
-                        {babysitter.payments?.map((payment, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center text-sm"
+        {/* Content */}
+        <div className="mt-8">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mt-8 flow-root">
+              <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                  <div className="overflow-hidden shadow ring-1 ring-gray-200 sm:rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-300">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
                           >
-                            <div>
-                              <span className="text-gray-900">
-                                {payment.date}
-                              </span>
-                              <span className="text-gray-500 ml-2">
-                                {payment.sessionType} ({payment.childrenCount}{" "}
-                                children)
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span className="font-medium text-gray-900">
-                                {formatCurrency(payment.amount)}
-                              </span>
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  payment.status === "paid"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                }`}
-                              >
-                                {payment.status}
-                              </span>
-                            </div>
-                          </div>
+                            Name
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
+                            Phone
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
+                            Email
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
+                            Children Assigned
+                          </th>
+                          <th
+                            scope="col"
+                            className="relative py-3.5 pl-3 pr-4 sm:pr-6"
+                          >
+                            <span className="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {filteredBabysitters.map((babysitter) => (
+                          <tr key={babysitter.id}>
+                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                              {babysitter.first_name} {babysitter.last_name}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {babysitter.phone_number}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {babysitter.email}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {babysitter.children_assigned_count}
+                            </td>
+                            <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedBabysitter(babysitter);
+                                    setShowInfoPanel(true);
+                                  }}
+                                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                                >
+                                  <FaInfoCircle className="h-4 w-4" />
+                                  <span>Info</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedBabysitter(babysitter);
+                                    setShowScheduleForm(true);
+                                  }}
+                                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                                >
+                                  <FaCalendarAlt className="h-4 w-4" />
+                                  <span>Schedule</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No payment records found
-                  </p>
-                )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-
-          {activeTab === "schedules" && (
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Schedules
-              </h2>
-              <div className="space-y-4">
-                {babysitters.length > 0 ? (
-                  babysitters.map((babysitter) => (
-                    <div
-                      key={babysitter.id}
-                      className="bg-gray-50 p-4 rounded-lg"
-                    >
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        {babysitter.first_name} {babysitter.last_name}
-                      </h3>
-                      <div className="space-y-2">
-                        {babysitter.schedule?.map((schedule, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <div>
-                              <span className="text-gray-900">
-                                {schedule.date}
-                              </span>
-                              <span className="text-gray-500 ml-2">
-                                {schedule.startTime} - {schedule.endTime}
-                              </span>
-                              <span className="text-gray-500 ml-2">
-                                ({schedule.sessionType})
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span className="text-gray-500">
-                                {schedule.childrenAssigned?.length || 0}{" "}
-                                children
-                              </span>
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  schedule.status === "completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-blue-100 text-blue-800"
-                                }`}
-                              >
-                                {schedule.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No schedules found
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

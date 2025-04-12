@@ -11,7 +11,14 @@ const db = require("../config/database");
 router.get("/", async (req, res) => {
   try {
     const [babysitters] = await db.query(
-      "SELECT id, first_name, last_name, email, phone_number, nin, age, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, is_active, last_login, created_at FROM babysitters WHERE is_active = 1"
+      `SELECT b.id, b.first_name, b.last_name, b.email, b.phone_number, b.nin, b.age, 
+       b.next_of_kin_name, b.next_of_kin_phone, b.next_of_kin_relationship, 
+       b.is_active, b.last_login, b.created_at,
+       COUNT(c.id) as children_assigned_count
+       FROM babysitters b
+       LEFT JOIN children c ON b.id = c.assigned_babysitter_id
+       WHERE b.is_active = 1
+       GROUP BY b.id`
     );
     res.json(babysitters);
   } catch (error) {
@@ -81,15 +88,25 @@ router.post(
   }
 );
 
-// Get babysitter by ID
-router.get("/:id", auth, async (req, res) => {
+// Get babysitter by ID with children count
+router.get("/:id", async (req, res) => {
   try {
-    const babysitter = await Babysitter.findById(req.params.id);
-    if (!babysitter) {
+    const [babysitter] = await db.query(
+      `SELECT b.*, COUNT(c.id) as children_assigned_count
+       FROM babysitters b
+       LEFT JOIN children c ON b.id = c.assigned_babysitter_id
+       WHERE b.id = ? AND b.is_active = 1
+       GROUP BY b.id`,
+      [req.params.id]
+    );
+
+    if (!babysitter.length) {
       return res.status(404).json({ message: "Babysitter not found" });
     }
-    res.json(babysitter);
+
+    res.json(babysitter[0]);
   } catch (error) {
+    console.error("Error fetching babysitter:", error);
     res
       .status(500)
       .json({ message: "Error fetching babysitter", error: error.message });
