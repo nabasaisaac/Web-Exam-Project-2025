@@ -232,20 +232,13 @@ router.get("/payments", auth, async (req, res) => {
   try {
     const [payments] = await db.query(`
       SELECT 
-        bs.*,
+        bp.*,
         b.first_name,
-        b.last_name,
-        COUNT(c.id) as children_count
-      FROM babysitter_schedules bs
-      JOIN babysitters b ON bs.babysitter_id = b.id
-      LEFT JOIN children c ON b.id = c.assigned_babysitter_id
-      WHERE bs.status = 'approved'
-      AND NOT EXISTS (
-        SELECT 1 FROM financial_transactions ft 
-        WHERE ft.description LIKE CONCAT('%', bs.id, '%')
-      )
-      GROUP BY bs.id, b.id, bs.date, bs.start_time, bs.end_time, bs.session_type
-      ORDER BY bs.date DESC
+        b.last_name
+      FROM babysitter_payments bp
+      JOIN babysitters b ON bp.babysitter_id = b.id
+      WHERE bp.status = 'pending'
+      ORDER BY bp.date DESC
     `);
 
     res.json(payments);
@@ -261,48 +254,43 @@ router.post("/payments/:id/clear", auth, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    console.log("Processing payment approval for schedule ID:", id);
+    console.log("Processing payment approval for payment ID:", id);
     console.log("User ID:", userId);
 
-    // Get schedule details with children count
-    const [schedules] = await db.query(
+    // Get payment details
+    const [payments] = await db.query(
       `SELECT 
-        bs.*, 
-        b.first_name, 
-        b.last_name,
-        b.id as babysitter_id,
-        COUNT(c.id) as children_assigned_count
-       FROM babysitter_schedules bs
-       JOIN babysitters b ON bs.babysitter_id = b.id
-       LEFT JOIN children c ON b.id = c.assigned_babysitter_id
-       WHERE bs.id = ? AND bs.status = 'approved'
-       GROUP BY bs.id, b.id, bs.date, bs.start_time, bs.end_time, bs.session_type`,
+        bp.*,
+        b.first_name,
+        b.last_name
+       FROM babysitter_payments bp
+       JOIN babysitters b ON bp.babysitter_id = b.id
+       WHERE bp.id = ? AND bp.status = 'pending'`,
       [id]
     );
 
-    console.log("Schedule details:", schedules);
+    console.log("Payment details:", payments);
 
-    if (!schedules || schedules.length === 0) {
-      console.log("Schedule not found or not approved");
+    if (!payments || payments.length === 0) {
+      console.log("Payment not found or not pending");
       return res
         .status(404)
-        .json({ message: "Schedule not found or not approved" });
+        .json({ message: "Payment not found or not pending" });
     }
 
-    const schedule = schedules[0];
-
-    // Calculate total payment amount for all children
-    const rate = schedule.session_type === "full-day" ? 5000 : 2000;
-    const childrenCount = schedule.children_assigned_count || 0;
-    const amount = childrenCount > 0 ? rate * childrenCount : 0;
-
-    console.log("Calculated total amount:", amount);
+    const payment = payments[0];
 
     // Start a transaction
     await db.query("START TRANSACTION");
 
     try {
-      // Insert into financial_transactions
+      // Update payment status to completed
+      await db.query(
+        "UPDATE babysitter_payments SET status = 'completed' WHERE id = ?",
+        [id]
+      );
+
+      // Insert into financial_transactions for record keeping
       const [result] = await db.query(
         `INSERT INTO financial_transactions 
          (type, amount, description, date, status, created_by, babysitter_id, 
@@ -310,43 +298,37 @@ router.post("/payments/:id/clear", auth, async (req, res) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           "expense",
-          amount,
-          `Salary payment for ${schedule.first_name} ${schedule.last_name} - ${schedule.session_type} session`,
-          schedule.date,
+          payment.amount,
+          `Salary payment for ${payment.first_name} ${payment.last_name} - ${payment.session_type} session`,
+          payment.date,
           "completed",
           userId,
-          schedule.babysitter_id,
-          schedule.first_name,
-          schedule.last_name,
-          schedule.session_type,
-          childrenCount,
+          payment.babysitter_id,
+          payment.first_name,
+          payment.last_name,
+          payment.session_type,
+          payment.children_count,
         ]
-      );
-
-      // Update schedule status to completed
-      await db.query(
-        "UPDATE babysitter_schedules SET status = 'completed' WHERE id = ?",
-        [id]
       );
 
       // Commit the transaction
       await db.query("COMMIT");
 
-      // Get the complete transaction details
-      const [transaction] = await db.query(
+      // Get the updated payment details
+      const [updatedPayment] = await db.query(
         `SELECT 
-          ft.*,
+          bp.*,
           b.first_name,
           b.last_name
-         FROM financial_transactions ft
-         JOIN babysitters b ON ft.babysitter_id = b.id
-         WHERE ft.id = ?`,
-        [result.insertId]
+         FROM babysitter_payments bp
+         JOIN babysitters b ON bp.babysitter_id = b.id
+         WHERE bp.id = ?`,
+        [id]
       );
 
       res.json({
         message: "Payment approved and recorded successfully",
-        transaction: transaction[0],
+        payment: updatedPayment[0],
       });
     } catch (error) {
       // Rollback the transaction if any error occurs
@@ -358,6 +340,87 @@ router.post("/payments/:id/clear", auth, async (req, res) => {
     console.error("Error stack:", error.stack);
     res.status(500).json({
       message: "Error approving payment",
+      error: error.message,
+    });
+  }
+});
+
+// Create a new payment record
+router.post("/payments", auth, async (req, res) => {
+  try {
+    const { babysitter_id, date, session_type, children_count } = req.body;
+    const userId = req.user.id;
+
+    // Validate required fields
+    if (
+      !babysitter_id ||
+      !date ||
+      !session_type ||
+      children_count === undefined
+    ) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        required: ["babysitter_id", "date", "session_type", "children_count"],
+      });
+    }
+
+    // Check if babysitter exists and is active
+    const [babysitter] = await db.query(
+      "SELECT id, first_name, last_name FROM babysitters WHERE id = ? AND is_active = TRUE",
+      [babysitter_id]
+    );
+
+    if (!babysitter || babysitter.length === 0) {
+      return res.status(404).json({
+        message: "Babysitter not found or inactive",
+        babysitter_id: babysitter_id,
+      });
+    }
+
+    // Calculate amount
+    const rate = session_type === "full-day" ? 5000 : 2000;
+    const amount = children_count > 0 ? rate * children_count : 0;
+
+    // Start a transaction
+    await db.query("START TRANSACTION");
+
+    try {
+      // Insert into babysitter_payments
+      const [result] = await db.query(
+        `INSERT INTO babysitter_payments 
+         (babysitter_id, date, session_type, children_count, amount, status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [babysitter_id, date, session_type, children_count, amount]
+      );
+
+      // Get the created payment with babysitter details
+      const [payment] = await db.query(
+        `SELECT 
+          bp.*,
+          b.first_name,
+          b.last_name
+         FROM babysitter_payments bp
+         JOIN babysitters b ON bp.babysitter_id = b.id
+         WHERE bp.id = ?`,
+        [result.insertId]
+      );
+
+      // Commit the transaction
+      await db.query("COMMIT");
+
+      res.status(201).json({
+        message: "Payment record created successfully",
+        payment: payment[0],
+      });
+    } catch (error) {
+      // Rollback the transaction if any error occurs
+      await db.query("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error creating payment record:", error);
+    res.status(500).json({
+      message: "Error creating payment record",
       error: error.message,
     });
   }
@@ -375,29 +438,91 @@ router.post("/:id/schedule", [auth, authorize("manager")], async (req, res) => {
     }
 
     // Check if babysitter exists and is active
-    const babysitter = await db.query(
+    const [babysitter] = await db.query(
       "SELECT * FROM babysitters WHERE id = ? AND is_active = TRUE",
       [id]
     );
 
-    if (babysitter.length === 0) {
+    if (!babysitter || babysitter.length === 0) {
       return res
         .status(404)
         .json({ error: "Babysitter not found or inactive" });
     }
 
-    // Insert the schedule
-    const result = await db.query(
-      `INSERT INTO babysitter_schedules 
-       (babysitter_id, date, start_time, end_time, session_type) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [id, date, startTime, endTime, sessionType]
-    );
+    // Start a transaction
+    await db.query("START TRANSACTION");
 
-    res.status(201).json({
-      message: "Schedule created successfully",
-      scheduleId: result.insertId,
-    });
+    try {
+      // Insert the schedule with approved status
+      const [scheduleResult] = await db.query(
+        `INSERT INTO babysitter_schedules 
+         (babysitter_id, date, start_time, end_time, session_type, status) 
+         VALUES (?, ?, ?, ?, ?, 'approved')`,
+        [id, date, startTime, endTime, sessionType]
+      );
+
+      // Get children count for the babysitter
+      const [childrenCount] = await db.query(
+        `SELECT COUNT(*) as count 
+         FROM children 
+         WHERE assigned_babysitter_id = ?`,
+        [id]
+      );
+
+      const count = childrenCount[0].count || 0;
+
+      // Calculate payment amount
+      const rate = sessionType === "full-day" ? 5000 : 2000;
+      const amount = count > 0 ? rate * count : 0;
+
+      // Create payment record
+      const [paymentResult] = await db.query(
+        `INSERT INTO babysitter_payments 
+         (babysitter_id, date, session_type, children_count, amount, status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [id, date, sessionType, count, amount]
+      );
+
+      // Get the created schedule with babysitter details
+      const [schedule] = await db.query(
+        `SELECT 
+          bs.*,
+          b.first_name,
+          b.last_name,
+          COUNT(c.id) as children_assigned_count
+         FROM babysitter_schedules bs
+         JOIN babysitters b ON bs.babysitter_id = b.id
+         LEFT JOIN children c ON b.id = c.assigned_babysitter_id
+         WHERE bs.id = ?
+         GROUP BY bs.id, b.id, bs.date, bs.start_time, bs.end_time, bs.session_type`,
+        [scheduleResult.insertId]
+      );
+
+      // Get the created payment with babysitter details
+      const [payment] = await db.query(
+        `SELECT 
+          bp.*,
+          b.first_name,
+          b.last_name
+         FROM babysitter_payments bp
+         JOIN babysitters b ON bp.babysitter_id = b.id
+         WHERE bp.id = ?`,
+        [paymentResult.insertId]
+      );
+
+      // Commit the transaction
+      await db.query("COMMIT");
+
+      res.status(201).json({
+        message: "Schedule created and payment record generated successfully",
+        schedule: schedule[0],
+        payment: payment[0],
+      });
+    } catch (error) {
+      // Rollback the transaction if any error occurs
+      await db.query("ROLLBACK");
+      throw error;
+    }
   } catch (error) {
     console.error("Error creating schedule:", error);
     res.status(500).json({ error: "Failed to create schedule" });
@@ -431,5 +556,25 @@ router.put(
     }
   }
 );
+
+// Get all babysitter payments
+router.get("/payments/all", auth, async (req, res) => {
+  try {
+    const [payments] = await db.query(`
+      SELECT 
+        bp.*,
+        b.first_name,
+        b.last_name
+      FROM babysitter_payments bp
+      JOIN babysitters b ON bp.babysitter_id = b.id
+      ORDER BY bp.date DESC
+    `);
+
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ error: "Failed to fetch payments" });
+  }
+});
 
 module.exports = router;

@@ -10,93 +10,49 @@ const BabysitterPayments = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
         console.log("Fetching payments with token:", token);
 
-        // Fetch approved schedules
-        const schedulesResponse = await axios.get(
-          "http://localhost:5000/api/babysitters/schedules",
+        // Fetch all babysitter payments
+        const response = await axios.get(
+          "http://localhost:5000/api/babysitters/payments/all",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        console.log("Schedules response:", schedulesResponse.data);
+        console.log("Payments response:", response.data);
 
-        // Process pending payments
-        const pendingPayments = schedulesResponse.data
-          .filter((schedule) => schedule.status === "approved")
-          .map((schedule) => {
-            const childrenCount = schedule.children_assigned_count || 0;
-            const amount = calculateAmount(
-              schedule.session_type,
-              childrenCount
-            );
-            return {
-              id: schedule.id,
-              first_name: schedule.first_name,
-              last_name: schedule.last_name,
-              date: schedule.date,
-              session_type: schedule.session_type,
-              children_count: childrenCount,
-              amount: amount,
-              status: "pending",
-            };
-          });
-        console.log("Pending payments:", pendingPayments);
+        // Process payments
+        const processedPayments = response.data.map((payment) => ({
+          id: payment.id,
+          first_name: payment.first_name,
+          last_name: payment.last_name,
+          date: payment.date,
+          session_type: payment.session_type,
+          children_count: payment.children_count,
+          amount: payment.amount,
+          status: payment.status,
+        }));
 
-        // Fetch completed payments
-        const transactionsResponse = await axios.get(
-          "http://localhost:5000/api/financial/transactions",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { type: "expense", category: "babysitter-salary" },
-          }
-        );
-        console.log("Transactions response:", transactionsResponse.data);
-
-        // Process completed payments
-        const completedPayments = transactionsResponse.data
-          .filter((transaction) => transaction.babysitter_id) // Only include transactions with babysitter_id
-          .map((transaction) => {
-            const childrenCount = transaction.children_count || 0;
-            const amount =
-              transaction.amount ||
-              calculateAmount(
-                transaction.session_type || "full-day",
-                childrenCount
-              );
-            return {
-              id: transaction.id,
-              first_name: transaction.first_name || "Unknown",
-              last_name: transaction.last_name || "Unknown",
-              date: transaction.date,
-              session_type: transaction.session_type || "full-day",
-              children_count: childrenCount,
-              amount: amount,
-              status: "completed",
-            };
-          });
-        console.log("Completed payments:", completedPayments);
-
-        // Combine and sort by date
-        const allPayments = [...pendingPayments, ...completedPayments].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
-        console.log("All payments:", allPayments);
-
-        setPayments(allPayments);
+        setPayments(processedPayments);
       } catch (error) {
         console.error("Error fetching payments:", error);
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-        });
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to fetch payments. Please check the console for details.",
-        });
+
+        // Handle specific error cases
+        if (error.response?.status === 404) {
+          Swal.fire({
+            icon: "error",
+            title: "Data Not Found",
+            text: "Could not fetch payment data. Please try again later.",
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to fetch payments. Please check the console for details.",
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -131,74 +87,45 @@ const BabysitterPayments = () => {
         }
       );
 
-      // Show success message
+      // Show success message with payment details
       await Swal.fire({
         icon: "success",
         title: "Payment Approved",
-        text: "The payment has been approved and recorded successfully.",
+        html: `
+          <div class="text-left">
+            <p><strong>Payment Details:</strong></p>
+            <p>Name: ${response.data.payment.first_name} ${
+          response.data.payment.last_name
+        }</p>
+            <p>Date: ${new Date(
+              response.data.payment.date
+            ).toLocaleDateString()}</p>
+            <p>Session Type: ${response.data.payment.session_type}</p>
+            <p>Children Count: ${response.data.payment.children_count}</p>
+            <p>Amount: UGX ${response.data.payment.amount.toLocaleString()}</p>
+          </div>
+        `,
       });
 
-      // Fetch approved schedules
-      const schedulesResponse = await axios.get(
-        "http://localhost:5000/api/babysitters/schedules",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Process pending payments
-      const pendingPayments = schedulesResponse.data
-        .filter((schedule) => schedule.status === "approved")
-        .map((schedule) => ({
-          id: schedule.id,
-          first_name: schedule.first_name,
-          last_name: schedule.last_name,
-          date: schedule.date,
-          session_type: schedule.session_type,
-          children_count: schedule.children_assigned_count,
-          amount: calculateAmount(
-            schedule.session_type,
-            schedule.children_assigned_count
-          ),
-          status: "pending",
-        }));
-
-      // Fetch completed payments
-      const transactionsResponse = await axios.get(
-        "http://localhost:5000/api/financial/transactions",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { type: "expense" },
-        }
-      );
-
-      // Process completed payments
-      const completedPayments = transactionsResponse.data.map(
-        (transaction) => ({
-          id: transaction.id,
-          first_name: transaction.first_name,
-          last_name: transaction.last_name,
-          date: transaction.date,
-          session_type: transaction.session_type || "full-day",
-          children_count: transaction.children_count || 0,
-          amount: transaction.amount,
-          status: "completed",
-        })
-      );
-
-      // Combine and sort by date
-      const allPayments = [...pendingPayments, ...completedPayments].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      );
-
-      setPayments(allPayments);
+      // Refresh payments
+      await fetchPayments();
     } catch (error) {
       console.error("Error approving payment:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to approve payment. Please try again.",
-      });
+
+      // Handle specific error cases
+      if (error.response?.status === 404) {
+        Swal.fire({
+          icon: "error",
+          title: "Payment Not Found",
+          text: "The payment could not be found or has already been processed.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to approve payment. Please try again.",
+        });
+      }
     }
   };
 

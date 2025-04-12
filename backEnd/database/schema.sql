@@ -119,4 +119,19 @@ DELETE FROM babysitters WHERE email = 'nabasaisaac16@gmail.com';
 -- INSERT INTO users (username, email, password) 
 -- VALUES ('NABASA ISAAC', 'nabasaisaac16@gmail.com', 'nabasaisaac16@gmail.com');
 
+-- Create babysitter_payments table
+CREATE TABLE IF NOT EXISTS babysitter_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    babysitter_id INT NOT NULL,
+    date DATE NOT NULL,
+    session_type ENUM('full-day', 'half-day') NOT NULL,
+    children_count INT NOT NULL DEFAULT 0,
+    amount DECIMAL(10,2) NOT NULL,
+    status ENUM('pending', 'completed') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (babysitter_id) REFERENCES babysitters(id) ON DELETE CASCADE
+);
 
+select * from babysitters;
+SELECT * FROM babysitter_payments;
