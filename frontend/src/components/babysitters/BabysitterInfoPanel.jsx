@@ -11,6 +11,7 @@ import {
   FaUserTie,
 } from "react-icons/fa";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 const BabysitterInfoPanel = ({
   babysitter,
@@ -77,9 +78,24 @@ const BabysitterInfoPanel = ({
     }
   }, [babysitter]);
 
-  const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this babysitter?")) {
-      onDelete(babysitter.id);
+  const handleDelete = async () => {
+    const result = await Swal.fire({
+      title: "Delete Babysitter",
+      text: "Are you sure you want to delete this babysitter permanently?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, I am sure!",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await onDelete(babysitter.id);
+        Swal.fire("Deleted!", "The babysitter has been deleted.", "success");
+      } catch (error) {
+        Swal.fire("Error!", "Failed to delete babysitter.", "error");
+      }
     }
   };
 
@@ -350,7 +366,10 @@ const BabysitterInfoPanel = ({
           <div className="mt-8 pt-4 border-t border-gray-200">
             <button
               onClick={handleDelete}
-              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              className="w-full flex items-center justify-center px-4 py-2 
+              border-1 rounded-md  text-sm font-medium text-red-600 
+               hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+               focus:ring-red-500 cursor-pointer"
             >
               <FaTrash className="mr-2" />
               Delete Babysitter

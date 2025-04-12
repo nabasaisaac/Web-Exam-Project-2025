@@ -157,18 +157,13 @@ router.put(
 // Delete babysitter (soft delete)
 router.delete("/:id", [auth, authorize("manager")], async (req, res) => {
   try {
-    const babysitter = await Babysitter.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
-
-    if (!babysitter) {
-      return res.status(404).json({ message: "Babysitter not found" });
-    }
-
-    res.json({ message: "Babysitter deactivated successfully" });
+    const result = await Babysitter.deleteBabysitter(req.params.id);
+    res.json(result);
   } catch (error) {
+    console.error("Error in delete route:", error);
+    if (error.message === "Babysitter not found") {
+      return res.status(404).json({ message: error.message });
+    }
     res
       .status(500)
       .json({ message: "Error deactivating babysitter", error: error.message });
@@ -209,5 +204,89 @@ router.get("/:id/attendance", auth, async (req, res) => {
     });
   }
 });
+
+// Get babysitter payments
+router.get("/:id/payments", auth, async (req, res) => {
+  try {
+    const [payments] = await db.query(
+      `SELECT ft.*, 
+       b.first_name, b.last_name,
+       c.children_count
+       FROM financial_transactions ft
+       JOIN babysitters b ON ft.reference_id = b.id
+       LEFT JOIN (
+         SELECT assigned_babysitter_id, COUNT(*) as children_count
+         FROM children
+         WHERE is_active = 1
+         GROUP BY assigned_babysitter_id
+       ) c ON b.id = c.assigned_babysitter_id
+       WHERE ft.reference_type = 'babysitter'
+       AND ft.reference_id = ?
+       ORDER BY ft.date DESC`,
+      [req.params.id]
+    );
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching payments", error: error.message });
+  }
+});
+
+// Calculate daily payment for babysitter
+router.post("/:id/calculate-payment", auth, async (req, res) => {
+  try {
+    const { date, sessionType } = req.body;
+
+    // Get number of children assigned to babysitter
+    const [childrenCount] = await db.query(
+      `SELECT COUNT(*) as count 
+       FROM children 
+       WHERE assigned_babysitter_id = ? 
+       AND is_active = 1`,
+      [req.params.id]
+    );
+
+    // Calculate payment based on session type and number of children
+    const rate = sessionType === "full-day" ? 5000 : 2000;
+    const amount = rate * childrenCount[0].count;
+
+    res.json({
+      childrenCount: childrenCount[0].count,
+      rate,
+      amount,
+      sessionType,
+      date,
+    });
+  } catch (error) {
+    console.error("Error calculating payment:", error);
+    res
+      .status(500)
+      .json({ message: "Error calculating payment", error: error.message });
+  }
+});
+
+// Clear a payment (update status to completed)
+router.put(
+  "/:id/payments/:paymentId/clear",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    try {
+      await db.query(
+        `UPDATE financial_transactions 
+       SET status = 'completed' 
+       WHERE id = ? AND reference_id = ? AND reference_type = 'babysitter'`,
+        [req.params.paymentId, req.params.id]
+      );
+      res.json({ message: "Payment cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing payment:", error);
+      res
+        .status(500)
+        .json({ message: "Error clearing payment", error: error.message });
+    }
+  }
+);
 
 module.exports = router;

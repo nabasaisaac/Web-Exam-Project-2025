@@ -8,9 +8,11 @@ import {
   FaInfoCircle,
   FaSpinner,
   FaSearch,
+  FaTrash,
 } from "react-icons/fa";
 import BabysitterInfoPanel from "../components/babysitters/BabysitterInfoPanel";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 const Babysitters = () => {
   const [activeTab, setActiveTab] = useState("list");
@@ -96,15 +98,44 @@ const Babysitters = () => {
     return rate * childrenCount;
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    const amount = calculatePayment(
-      paymentData.sessionType,
-      paymentData.childrenCount
-    );
-    setPaymentData({ ...paymentData, amount });
-    // TODO: Implement actual payment logic
-    setShowPaymentForm(false);
+    try {
+      const token = localStorage.getItem("token");
+      const amount = calculatePayment(
+        paymentData.sessionType,
+        paymentData.childrenCount
+      );
+
+      const paymentRecord = {
+        type: "income",
+        category: "babysitter-payment",
+        amount: amount,
+        description: `Payment for ${paymentData.sessionType} session with ${paymentData.childrenCount} children`,
+        date: paymentData.date,
+        reference_id: paymentData.babysitterId,
+        reference_type: "babysitter",
+        status: "pending",
+      };
+
+      await axios.post(
+        "http://localhost:5000/api/financial-transactions",
+        paymentRecord,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      Swal.fire("Success!", "Payment recorded successfully.", "success");
+      setShowPaymentForm(false);
+      // Refresh babysitters data to show updated payments
+      fetchBabysitters();
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      Swal.fire("Error!", "Failed to record payment.", "error");
+    }
   };
 
   const handleScheduleSubmit = (e) => {
@@ -121,17 +152,32 @@ const Babysitters = () => {
   };
 
   const handleDeleteBabysitter = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/babysitters/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setBabysitters(babysitters.filter((b) => b.id !== id));
-      setShowInfoPanel(false);
-    } catch (error) {
-      console.error("Error deleting babysitter:", error);
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://localhost:5000/api/babysitters/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        Swal.fire("Deleted!", "The babysitter has been deleted.", "success");
+        setBabysitters(babysitters.filter((b) => b.id !== id));
+        setShowInfoPanel(false);
+      } catch (error) {
+        console.error("Error deleting babysitter:", error);
+        Swal.fire("Error!", "Failed to delete babysitter.", "error");
+      }
     }
   };
 
@@ -228,84 +274,262 @@ const Babysitters = () => {
               <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                   <div className="overflow-hidden shadow ring-1 ring-gray-200 sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th
-                            scope="col"
-                            className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                          >
-                            Name
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Phone
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Email
-                          </th>
-                          <th
-                            scope="col"
-                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                          >
-                            Children Assigned
-                          </th>
-                          <th
-                            scope="col"
-                            className="relative py-3.5 pl-3 pr-4 sm:pr-6"
-                          >
-                            <span className="sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {filteredBabysitters.map((babysitter) => (
-                          <tr key={babysitter.id}>
-                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                              {babysitter.first_name} {babysitter.last_name}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {babysitter.phone_number}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {babysitter.email}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {babysitter.children_assigned_count}
-                            </td>
-                            <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedBabysitter(babysitter);
-                                    setShowInfoPanel(true);
-                                  }}
-                                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                                >
-                                  <FaInfoCircle className="h-4 w-4" />
-                                  <span>Info</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedBabysitter(babysitter);
-                                    setShowScheduleForm(true);
-                                  }}
-                                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                                >
-                                  <FaCalendarAlt className="h-4 w-4" />
-                                  <span>Schedule</span>
-                                </button>
-                              </div>
-                            </td>
+                    {activeTab === "list" && (
+                      <table className="min-w-full divide-y divide-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th
+                              scope="col"
+                              className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                            >
+                              Name
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Phone
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Email
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Children Assigned
+                            </th>
+                            <th
+                              scope="col"
+                              className="relative py-3.5 pl-3 pr-4 sm:pr-6"
+                            >
+                              <span className="sr-only">Actions</span>
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {filteredBabysitters.map((babysitter) => (
+                            <tr key={babysitter.id}>
+                              <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                {babysitter.first_name} {babysitter.last_name}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                {babysitter.phone_number}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                {babysitter.email}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                {babysitter.children_assigned_count}
+                              </td>
+                              <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBabysitter(babysitter);
+                                      setShowInfoPanel(true);
+                                    }}
+                                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                                  >
+                                    <FaInfoCircle className="h-4 w-4" />
+                                    <span>Info</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBabysitter(babysitter);
+                                      setShowScheduleForm(true);
+                                    }}
+                                    className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                                  >
+                                    <FaCalendarAlt className="h-4 w-4" />
+                                    <span>Schedule</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+
+                    {activeTab === "payments" && (
+                      <table className="min-w-full divide-y divide-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th
+                              scope="col"
+                              className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                            >
+                              Name
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Date
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Session Type
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Children Count
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Amount
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Status
+                            </th>
+                            <th
+                              scope="col"
+                              className="relative py-3.5 pl-3 pr-4 sm:pr-6"
+                            >
+                              <span className="sr-only">Actions</span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {babysitters.map((babysitter) =>
+                            babysitter.payments?.map((payment, index) => (
+                              <tr key={`${babysitter.id}-${index}`}>
+                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                  {babysitter.first_name} {babysitter.last_name}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {payment.date}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {payment.sessionType}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {payment.childrenCount}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {formatCurrency(payment.amount)}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                  <span
+                                    className={`px-2 py-1 text-xs rounded-full ${
+                                      payment.status === "completed"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}
+                                  >
+                                    {payment.status}
+                                  </span>
+                                </td>
+                                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                  {payment.status === "pending" && (
+                                    <button
+                                      onClick={() =>
+                                        handleClearPayment(payment.id)
+                                      }
+                                      className="text-indigo-600 hover:text-indigo-900"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+
+                    {activeTab === "schedules" && (
+                      <table className="min-w-full divide-y divide-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th
+                              scope="col"
+                              className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                            >
+                              Name
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Date
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Time
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Session Type
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Children Assigned
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {babysitters.map((babysitter) =>
+                            babysitter.schedule?.map((schedule, index) => (
+                              <tr key={`${babysitter.id}-${index}`}>
+                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                  {babysitter.first_name} {babysitter.last_name}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {schedule.date}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {schedule.startTime} - {schedule.endTime}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {schedule.sessionType}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                  {schedule.childrenAssigned?.length || 0}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                  <span
+                                    className={`px-2 py-1 text-xs rounded-full ${
+                                      schedule.status === "completed"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-blue-100 text-blue-800"
+                                    }`}
+                                  >
+                                    {schedule.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </div>
