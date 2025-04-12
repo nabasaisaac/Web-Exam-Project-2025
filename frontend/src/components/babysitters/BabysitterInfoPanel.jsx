@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaTimes,
   FaTrash,
@@ -8,7 +8,9 @@ import {
   FaPhone,
   FaIdCard,
   FaUserFriends,
+  FaUserTie,
 } from "react-icons/fa";
+import axios from "axios";
 
 const BabysitterInfoPanel = ({
   babysitter,
@@ -19,19 +21,61 @@ const BabysitterInfoPanel = ({
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [children, setChildren] = useState([]);
+  const [filteredChildren, setFilteredChildren] = useState([]);
+  const [assignedChildren, setAssignedChildren] = useState([]);
 
-  // Mock children data - replace with actual data from your backend
-  const children = [
-    { id: 1, name: "John Doe", age: 5 },
-    { id: 2, name: "Jane Smith", age: 4 },
-    { id: 3, name: "Mike Johnson", age: 6 },
-    { id: 4, name: "Sarah Williams", age: 5 },
-    { id: 5, name: "David Brown", age: 4 },
-  ];
+  // Fetch children data from backend
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:5000/api/children", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const filteredChildren = children.filter((child) =>
-    child.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+        setChildren(response.data);
+        setFilteredChildren(response.data);
+      } catch (error) {
+        console.error("Error fetching children:", error);
+      }
+    };
+
+    fetchChildren();
+  }, []);
+
+  // Update filtered children when search term changes
+  useEffect(() => {
+    const filtered = children.filter((child) =>
+      child.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredChildren(filtered);
+  }, [searchTerm, children]);
+
+  // Update assigned children when babysitter changes
+  useEffect(() => {
+    if (babysitter?.id) {
+      const fetchAssignedChildren = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            `http://localhost:5000/api/children?babysitterId=${babysitter.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          setAssignedChildren(response.data.map((child) => child.id));
+        } catch (error) {
+          console.error("Error fetching assigned children:", error);
+        }
+      };
+      fetchAssignedChildren();
+    }
+  }, [babysitter]);
 
   const handleDelete = () => {
     if (window.confirm("Are you sure you want to delete this babysitter?")) {
@@ -39,12 +83,40 @@ const BabysitterInfoPanel = ({
     }
   };
 
-  const handleAssignSubmit = (e) => {
+  const handleAssignSubmit = async (e) => {
     e.preventDefault();
-    onAssignChildren(babysitter.id, selectedChildren);
-    setShowAssignForm(false);
-    setSelectedChildren([]);
-    setSearchTerm("");
+    try {
+      const token = localStorage.getItem("token");
+      // Update each child with the new babysitter ID
+      for (const childId of selectedChildren) {
+        await axios.put(
+          `http://localhost:5000/api/children/${childId}`,
+          {
+            assignedBabysitterId: babysitter.id,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      // Update local state
+      const updatedAssignedChildren = [
+        ...assignedChildren,
+        ...selectedChildren,
+      ];
+      setAssignedChildren(updatedAssignedChildren);
+      onAssignChildren(babysitter.id, updatedAssignedChildren);
+
+      // Reset form
+      setShowAssignForm(false);
+      setSelectedChildren([]);
+      setSearchTerm("");
+    } catch (error) {
+      console.error("Error assigning children:", error);
+    }
   };
 
   const toggleChildSelection = (childId) => {
@@ -53,6 +125,31 @@ const BabysitterInfoPanel = ({
         ? prev.filter((id) => id !== childId)
         : [...prev, childId]
     );
+  };
+
+  const handleRemoveChild = async (childId) => {
+    try {
+      const token = localStorage.getItem("token");
+      // Update the child to remove babysitter assignment
+      await axios.put(
+        `http://localhost:5000/api/children/${childId}`,
+        {
+          assignedBabysitterId: null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Update local state
+      const updated = assignedChildren.filter((id) => id !== childId);
+      setAssignedChildren(updated);
+      onAssignChildren(babysitter.id, updated);
+    } catch (error) {
+      console.error("Error removing child:", error);
+    }
   };
 
   return (
@@ -72,14 +169,14 @@ const BabysitterInfoPanel = ({
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column - Basic Info */}
+            {/* Left Column - Basic Info and Next of Kin */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <FaUser className="text-indigo-500" />
                 <div>
                   <p className="text-sm text-gray-500">Full Name</p>
                   <p className="font-medium">
-                    {babysitter.firstName} {babysitter.lastName}
+                    {babysitter.first_name} {babysitter.last_name}
                   </p>
                 </div>
               </div>
@@ -115,26 +212,37 @@ const BabysitterInfoPanel = ({
                   <p className="font-medium">{babysitter.age}</p>
                 </div>
               </div>
-            </div>
 
-            {/* Right Column - Next of Kin and Children */}
-            <div className="space-y-4">
+              {/* Next of Kin Section */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">
                   Next of Kin
                 </h3>
                 <div className="space-y-2">
-                  <p>
-                    <span className="font-medium">Name:</span>{" "}
-                    {babysitter.nextOfKinName}
-                  </p>
-                  <p>
-                    <span className="font-medium">Phone:</span>{" "}
-                    {babysitter.nextOfKinPhone}
-                  </p>
+                  <div className="flex items-center space-x-3">
+                    <FaUserTie className="text-indigo-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Name</p>
+                      <p className="font-medium">
+                        {babysitter.next_of_kin_name}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FaPhone className="text-indigo-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <p className="font-medium">
+                        {babysitter.next_of_kin_phone}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
 
+            {/* Right Column - Assigned Children */}
+            <div className="space-y-4">
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-gray-500">
@@ -179,7 +287,7 @@ const BabysitterInfoPanel = ({
                               className="mr-2"
                             />
                             <span>
-                              {child.name} (Age: {child.age})
+                              {child.full_name} (Age: {child.age})
                             </span>
                           </div>
                         </div>
@@ -208,30 +316,28 @@ const BabysitterInfoPanel = ({
                 )}
 
                 {/* Assigned Children List */}
-                {babysitter.childrenAssigned?.length > 0 ? (
+                {assignedChildren.length > 0 ? (
                   <div className="space-y-2">
-                    {babysitter.childrenAssigned.map((child, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <div className="flex items-center">
-                          <FaUser className="text-gray-400 mr-2" />
-                          <span>{child}</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const updated = babysitter.childrenAssigned.filter(
-                              (c) => c !== child
-                            );
-                            onAssignChildren(babysitter.id, updated);
-                          }}
-                          className="text-red-500 hover:text-red-700"
+                    {assignedChildren.map((childId) => {
+                      const child = children.find((c) => c.id === childId);
+                      return child ? (
+                        <div
+                          key={childId}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
                         >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center">
+                            <FaUser className="text-gray-400 mr-2" />
+                            <span>{child.full_name}</span>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveChild(childId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
                   </div>
                 ) : (
                   <p className="text-gray-500 text-sm">No children assigned</p>

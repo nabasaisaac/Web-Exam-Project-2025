@@ -11,7 +11,7 @@ const db = require("../config/database");
 router.get("/", async (req, res) => {
   try {
     const [babysitters] = await db.query(
-      "SELECT id, first_name, last_name, email, phone_number FROM babysitters WHERE is_active = 1"
+      "SELECT id, first_name, last_name, email, phone_number, nin, age, next_of_kin_name, next_of_kin_phone, next_of_kin_relationship, is_active, last_login, created_at FROM babysitters WHERE is_active = 1"
     );
     res.json(babysitters);
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaPlus,
   FaCalendarAlt,
@@ -6,8 +6,11 @@ import {
   FaClock,
   FaUserClock,
   FaInfoCircle,
+  FaSpinner,
+  FaSearch,
 } from "react-icons/fa";
 import BabysitterInfoPanel from "../components/babysitters/BabysitterInfoPanel";
+import axios from "axios";
 
 const Babysitters = () => {
   const [activeTab, setActiveTab] = useState("list");
@@ -16,6 +19,9 @@ const Babysitters = () => {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [selectedBabysitter, setSelectedBabysitter] = useState(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [babysitters, setBabysitters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -45,80 +51,45 @@ const Babysitters = () => {
     childrenAssigned: [],
   });
 
-  const babysitters = [
-    {
-      id: 1,
-      firstName: "Jane",
-      lastName: "Doe",
-      email: "jane.doe@example.com",
-      phone: "+256 701234567",
-      nin: "CM12345678XYZ",
-      age: 25,
-      nextOfKinName: "John Doe",
-      nextOfKinPhone: "+256 702345678",
-      status: "active",
-      childrenAssigned: 3,
-      paymentRate: {
-        "half-day": 2000,
-        "full-day": 5000,
-      },
-      schedule: [
-        {
-          date: "2024-04-15",
-          startTime: "08:00",
-          endTime: "17:00",
-          sessionType: "full-day",
-          childrenAssigned: ["Child 1", "Child 2", "Child 3"],
-          status: "completed",
-        },
-      ],
-      payments: [
-        {
-          date: "2024-04-15",
-          sessionType: "full-day",
-          childrenCount: 3,
-          amount: 15000,
-          status: "paid",
-        },
-      ],
-    },
-    {
-      id: 2,
-      firstName: "Mary",
-      lastName: "Smith",
-      email: "mary.smith@example.com",
-      phone: "+256 703456789",
-      nin: "CM87654321XYZ",
-      age: 28,
-      nextOfKinName: "Sarah Smith",
-      nextOfKinPhone: "+256 704567890",
-      status: "active",
-      childrenAssigned: 2,
-      paymentRate: {
-        "half-day": 2000,
-        "full-day": 5000,
-      },
-      schedule: [
-        {
-          date: "2024-04-15",
-          startTime: "08:00",
-          endTime: "12:00",
-          sessionType: "half-day",
-          childrenAssigned: ["Child 1", "Child 2"],
-          status: "completed",
-        },
-      ],
-      payments: [
-        {
-          date: "2024-04-15",
-          sessionType: "half-day",
-          childrenCount: 2,
-          amount: 4000,
-          status: "paid",
-        },
-      ],
-    },
-  ];
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Fetch babysitters from backend
+  useEffect(() => {
+    const fetchBabysitters = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/babysitters",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        // Sort babysitters by first name in ascending order
+        const sortedBabysitters = response.data.sort((a, b) =>
+          a.first_name.localeCompare(b.first_name)
+        );
+        setBabysitters(sortedBabysitters);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching babysitters:", err);
+        setError("Failed to load babysitters. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBabysitters();
+  }, []);
+
+  // Filter babysitters based on search term
+  const filteredBabysitters = babysitters.filter((babysitter) => {
+    const searchString =
+      `${babysitter.first_name} ${babysitter.last_name} ${babysitter.nin} ${babysitter.email} ${babysitter.phone}`.toLowerCase();
+    return searchString.includes(searchTerm.toLowerCase());
+  });
 
   const calculatePayment = (sessionType, childrenCount) => {
     const rate = sessionType === "full-day" ? 5000 : 2000;
@@ -149,15 +120,42 @@ const Babysitters = () => {
     }).format(amount);
   };
 
-  const handleDeleteBabysitter = (id) => {
-    // TODO: Implement delete functionality
-    console.log("Delete babysitter:", id);
-    setShowInfoPanel(false);
+  const handleDeleteBabysitter = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/babysitters/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setBabysitters(babysitters.filter((b) => b.id !== id));
+      setShowInfoPanel(false);
+    } catch (error) {
+      console.error("Error deleting babysitter:", error);
+    }
   };
 
-  const handleAssignChildren = (id, children) => {
-    // TODO: Implement assign children functionality
-    console.log("Assign children:", id, children);
+  const handleAssignChildren = async (id, children) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/babysitters/${id}/assign-children`,
+        { children },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      // Update local state
+      setBabysitters(
+        babysitters.map((b) =>
+          b.id === id ? { ...b, children_assigned: children } : b
+        )
+      );
+    } catch (error) {
+      console.error("Error assigning children:", error);
+    }
   };
 
   return (
@@ -206,56 +204,74 @@ const Babysitters = () => {
         <div className="bg-white shadow rounded-lg">
           {activeTab === "list" && (
             <div className="p-6">
-              <div className="grid grid-cols-1 gap-6">
-                {babysitters.map((babysitter) => (
-                  <div
-                    key={babysitter.id}
-                    className="bg-white border rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {babysitter.firstName} {babysitter.lastName}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Age: {babysitter.age} | Children Assigned:{" "}
-                          {babysitter.childrenAssigned?.length || 0}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Contact: {babysitter.phone} | Email:{" "}
-                          {babysitter.email}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          NIN: {babysitter.nin}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Next of Kin: {babysitter.nextOfKinName} (
-                          {babysitter.nextOfKinPhone})
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedBabysitter(babysitter);
-                            setShowInfoPanel(true);
-                          }}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                        >
-                          <FaInfoCircle className="mr-1.5" /> Info
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedBabysitter(babysitter);
-                            setShowScheduleForm(true);
-                          }}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
-                        >
-                          <FaCalendarAlt className="mr-1.5" /> Schedule
-                        </button>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <FaSpinner className="animate-spin text-indigo-600 text-4xl" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-600">{error}</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {filteredBabysitters.map((babysitter) => (
+                    <div
+                      key={babysitter.id}
+                      className="bg-white border-1 border-indigo-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {babysitter.first_name} {babysitter.last_name}
+                          </h3>
+                          <div className="flex flex-col space-y-1 text-sm text-gray-500">
+                            <div>
+                              <span className="font-medium">Phone:</span>{" "}
+                              {babysitter.phone}
+                            </div>
+                            <div>
+                              <span className="font-medium">Email:</span>{" "}
+                              {babysitter.email}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedBabysitter(babysitter);
+                              setShowInfoPanel(true);
+                            }}
+                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                          >
+                            <FaInfoCircle className="mr-1.5" /> Info
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedBabysitter(babysitter);
+                              setShowScheduleForm(true);
+                            }}
+                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                          >
+                            <FaCalendarAlt className="mr-1.5" /> Schedule
+                          </button>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+              {/* Search Bar - Moved to bottom */}
+              <div className="mt-6">
+                <div className="relative rounded-md shadow-sm">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search babysitters by name, phone, or email..."
+                    className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FaSearch className="h-5 w-5 text-gray-400" />
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           )}
@@ -266,48 +282,54 @@ const Babysitters = () => {
                 Payment Records
               </h2>
               <div className="space-y-4">
-                {babysitters.map((babysitter) => (
-                  <div
-                    key={babysitter.id}
-                    className="bg-gray-50 p-4 rounded-lg"
-                  >
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">
-                      {babysitter.firstName} {babysitter.lastName}
-                    </h3>
-                    <div className="space-y-2">
-                      {babysitter.payments.map((payment, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center text-sm"
-                        >
-                          <div>
-                            <span className="text-gray-900">
-                              {payment.date}
-                            </span>
-                            <span className="text-gray-500 ml-2">
-                              {payment.sessionType} ({payment.childrenCount}{" "}
-                              children)
-                            </span>
+                {babysitters.length > 0 ? (
+                  babysitters.map((babysitter) => (
+                    <div
+                      key={babysitter.id}
+                      className="bg-gray-50 p-4 rounded-lg"
+                    >
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">
+                        {babysitter.first_name} {babysitter.last_name}
+                      </h3>
+                      <div className="space-y-2">
+                        {babysitter.payments?.map((payment, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <div>
+                              <span className="text-gray-900">
+                                {payment.date}
+                              </span>
+                              <span className="text-gray-500 ml-2">
+                                {payment.sessionType} ({payment.childrenCount}{" "}
+                                children)
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <span className="font-medium text-gray-900">
+                                {formatCurrency(payment.amount)}
+                              </span>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  payment.status === "paid"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {payment.status}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="font-medium text-gray-900">
-                              {formatCurrency(payment.amount)}
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                payment.status === "paid"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {payment.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No payment records found
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -318,50 +340,57 @@ const Babysitters = () => {
                 Schedules
               </h2>
               <div className="space-y-4">
-                {babysitters.map((babysitter) => (
-                  <div
-                    key={babysitter.id}
-                    className="bg-gray-50 p-4 rounded-lg"
-                  >
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">
-                      {babysitter.firstName} {babysitter.lastName}
-                    </h3>
-                    <div className="space-y-2">
-                      {babysitter.schedule.map((schedule, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center text-sm"
-                        >
-                          <div>
-                            <span className="text-gray-900">
-                              {schedule.date}
-                            </span>
-                            <span className="text-gray-500 ml-2">
-                              {schedule.startTime} - {schedule.endTime}
-                            </span>
-                            <span className="text-gray-500 ml-2">
-                              ({schedule.sessionType})
-                            </span>
+                {babysitters.length > 0 ? (
+                  babysitters.map((babysitter) => (
+                    <div
+                      key={babysitter.id}
+                      className="bg-gray-50 p-4 rounded-lg"
+                    >
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">
+                        {babysitter.first_name} {babysitter.last_name}
+                      </h3>
+                      <div className="space-y-2">
+                        {babysitter.schedule?.map((schedule, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <div>
+                              <span className="text-gray-900">
+                                {schedule.date}
+                              </span>
+                              <span className="text-gray-500 ml-2">
+                                {schedule.startTime} - {schedule.endTime}
+                              </span>
+                              <span className="text-gray-500 ml-2">
+                                ({schedule.sessionType})
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <span className="text-gray-500">
+                                {schedule.childrenAssigned?.length || 0}{" "}
+                                children
+                              </span>
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  schedule.status === "completed"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {schedule.status}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="text-gray-500">
-                              {schedule.childrenAssigned.length} children
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                schedule.status === "completed"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-blue-100 text-blue-800"
-                              }`}
-                            >
-                              {schedule.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No schedules found
+                  </p>
+                )}
               </div>
             </div>
           )}
