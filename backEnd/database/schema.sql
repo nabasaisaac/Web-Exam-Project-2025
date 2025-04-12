@@ -56,19 +56,21 @@ CREATE TABLE IF NOT EXISTS attendance (
 
 CREATE TABLE IF NOT EXISTS financial_transactions (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  babysitter_id INT,
   type ENUM('income', 'expense') NOT NULL,
-  category VARCHAR(50) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   description TEXT NOT NULL,
   date DATE NOT NULL,
-  reference_id INT,
-  reference_type ENUM('child', 'babysitter'),
   status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
   created_by INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (created_by) REFERENCES users(id)
+  FOREIGN KEY (created_by) REFERENCES users(id),
+  FOREIGN KEY (babysitter_id) REFERENCES babysitters(id)
 );
 
+SELECT * FROM financial_transactions;
+use daystar_daycare;
+DROP TABLE IF EXISTS financial_transactions;
 CREATE TABLE IF NOT EXISTS incident_report (
   id INT AUTO_INCREMENT PRIMARY KEY,
   child_id INT NOT NULL,

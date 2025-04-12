@@ -5,37 +5,50 @@ const { auth, authorize } = require("../middleware/auth");
 const FinancialTransaction = require("../models/FinancialTransaction");
 const Child = require("../models/Child");
 const Babysitter = require("../models/Babysitter");
+const db = require("../config/database");
 
 // Get all financial transactions
 router.get("/transactions", [auth, authorize("manager")], async (req, res) => {
   try {
-    const { startDate, endDate, type, category } = req.query;
-    const query = {};
+    const { startDate, endDate, type, status } = req.query;
+    let query = `
+      SELECT 
+        ft.*,
+        b.first_name,
+        b.last_name,
+        u.username as created_by_name
+      FROM financial_transactions ft
+      LEFT JOIN babysitters b ON ft.babysitter_id = b.id
+      LEFT JOIN users u ON ft.created_by = u.id
+      WHERE 1=1
+    `;
+    const params = [];
 
     if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
+      query += " AND ft.date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
     }
 
     if (type) {
-      query.type = type;
+      query += " AND ft.type = ?";
+      params.push(type);
     }
 
-    if (category) {
-      query.category = category;
+    if (status) {
+      query += " AND ft.status = ?";
+      params.push(status);
     }
 
-    const transactions = await FinancialTransaction.find(query)
-      .sort({ date: -1 })
-      .populate("reference", "fullName firstName lastName");
+    query += " ORDER BY ft.date DESC";
 
+    const [transactions] = await db.query(query, params);
     res.json(transactions);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching transactions", error: error.message });
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({
+      message: "Error fetching transactions",
+      error: error.message,
+    });
   }
 });
 
@@ -48,16 +61,6 @@ router.post(
     body("type")
       .isIn(["income", "expense"])
       .withMessage("Invalid transaction type"),
-    body("category")
-      .isIn([
-        "daycare-fees",
-        "babysitter-salary",
-        "toys-materials",
-        "maintenance",
-        "utilities",
-        "other",
-      ])
-      .withMessage("Invalid category"),
     body("amount")
       .isFloat({ min: 0 })
       .withMessage("Amount must be a positive number"),
@@ -65,8 +68,8 @@ router.post(
       .trim()
       .notEmpty()
       .withMessage("Description is required"),
-    body("reference").optional().isMongoId(),
-    body("referenceModel").optional().isIn(["Child", "Babysitter"]),
+    body("date").isISO8601().withMessage("Valid date is required"),
+    body("babysitter_id").optional().isInt(),
   ],
   async (req, res) => {
     try {
@@ -75,21 +78,31 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const transaction = new FinancialTransaction({
-        ...req.body,
-        createdBy: req.user._id,
-      });
-
-      await transaction.save();
+      const [result] = await db.query(
+        `INSERT INTO financial_transactions 
+         (type, amount, description, date, status, created_by, babysitter_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          req.body.type,
+          req.body.amount,
+          req.body.description,
+          req.body.date,
+          req.body.status || "pending",
+          req.user.id,
+          req.body.babysitter_id || null,
+        ]
+      );
 
       res.status(201).json({
         message: "Transaction recorded successfully",
-        transaction,
+        transactionId: result.insertId,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Error recording transaction", error: error.message });
+      console.error("Error recording transaction:", error);
+      res.status(500).json({
+        message: "Error recording transaction",
+        error: error.message,
+      });
     }
   }
 );
