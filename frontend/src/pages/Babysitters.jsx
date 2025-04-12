@@ -14,6 +14,8 @@ import {
 import BabysitterInfoPanel from "../components/babysitters/BabysitterInfoPanel";
 import axios from "axios";
 import Swal from "sweetalert2";
+import BabysitterSchedules from "../components/babysitters/BabysitterSchedules";
+import BabysitterPayments from "../components/babysitters/BabysitterPayments";
 
 const Babysitters = () => {
   const [activeTab, setActiveTab] = useState("list");
@@ -55,6 +57,8 @@ const Babysitters = () => {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [schedules, setSchedules] = useState([]);
 
   // Fetch babysitters from backend
   useEffect(() => {
@@ -243,6 +247,59 @@ const Babysitters = () => {
     }
   };
 
+  // Fetch schedules when schedules tab is active
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      if (activeTab === "schedules") {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await axios.get(
+            "http://localhost:5000/api/babysitters/schedules",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          setSchedules(response.data);
+        } catch (error) {
+          console.error("Error fetching schedules:", error);
+        }
+      }
+    };
+
+    fetchSchedules();
+  }, [activeTab]);
+
+  // Add this function to handle status update
+  const handleStatusUpdate = async (scheduleId, currentStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        `http://localhost:5000/api/babysitters/schedules/${scheduleId}/status`,
+        { status: "approved" },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.message === "Status updated successfully") {
+        // Update the local state
+        setSchedules(
+          schedules.map((schedule) =>
+            schedule.id === scheduleId
+              ? { ...schedule, status: "approved" }
+              : schedule
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -394,181 +451,9 @@ const Babysitters = () => {
                       </table>
                     )}
 
-                    {activeTab === "payments" && (
-                      <table className="min-w-full divide-y divide-gray-300">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th
-                              scope="col"
-                              className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                            >
-                              Name
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Date
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Session Type
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Children Count
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Amount
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Status
-                            </th>
-                            <th
-                              scope="col"
-                              className="relative py-3.5 pl-3 pr-4 sm:pr-6"
-                            >
-                              <span className="sr-only">Actions</span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                          {babysitters.map((babysitter) =>
-                            babysitter.payments?.map((payment, index) => (
-                              <tr key={`${babysitter.id}-${index}`}>
-                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                                  {babysitter.first_name} {babysitter.last_name}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {payment.date}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {payment.sessionType}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {payment.childrenCount}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {formatCurrency(payment.amount)}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                  <span
-                                    className={`px-2 py-1 text-xs rounded-full ${
-                                      payment.status === "completed"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {payment.status}
-                                  </span>
-                                </td>
-                                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                  {payment.status === "pending" && (
-                                    <button
-                                      onClick={() =>
-                                        handleClearPayment(payment.id)
-                                      }
-                                      className="text-indigo-600 hover:text-indigo-900"
-                                    >
-                                      Clear
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    )}
+                    {activeTab === "payments" && <BabysitterPayments />}
 
-                    {activeTab === "schedules" && (
-                      <table className="min-w-full divide-y divide-gray-300">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th
-                              scope="col"
-                              className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                            >
-                              Name
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Date
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Time
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Session Type
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Children Assigned
-                            </th>
-                            <th
-                              scope="col"
-                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                            >
-                              Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                          {babysitters.map((babysitter) =>
-                            babysitter.schedule?.map((schedule, index) => (
-                              <tr key={`${babysitter.id}-${index}`}>
-                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                                  {babysitter.first_name} {babysitter.last_name}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {schedule.date}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {schedule.startTime} - {schedule.endTime}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {schedule.sessionType}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {schedule.childrenAssigned?.length || 0}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                  <span
-                                    className={`px-2 py-1 text-xs rounded-full ${
-                                      schedule.status === "completed"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-blue-100 text-blue-800"
-                                    }`}
-                                  >
-                                    {schedule.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    )}
+                    {activeTab === "schedules" && <BabysitterSchedules />}
                   </div>
                 </div>
               </div>

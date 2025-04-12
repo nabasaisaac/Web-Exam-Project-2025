@@ -88,28 +88,50 @@ router.post(
   }
 );
 
-// Get babysitter by ID with children count
-router.get("/:id", async (req, res) => {
+// Get all babysitter schedules
+router.get("/schedules", auth, async (req, res) => {
+  try {
+    const [schedules] = await db.query(`
+      SELECT 
+        bs.*,
+        b.first_name,
+        b.last_name,
+        COUNT(c.id) as children_assigned_count
+      FROM babysitter_schedules bs
+      JOIN babysitters b ON bs.babysitter_id = b.id
+      LEFT JOIN children c ON b.id = c.assigned_babysitter_id
+      WHERE b.is_active = TRUE
+      GROUP BY bs.id, b.id, bs.date, bs.start_time, bs.end_time, bs.session_type, bs.status, bs.created_at
+      ORDER BY bs.date DESC, bs.start_time ASC
+    `);
+
+    if (!schedules) {
+      return res.status(200).json([]);
+    }
+
+    res.json(schedules);
+  } catch (error) {
+    console.error("Error fetching schedules:", error);
+    res.status(500).json({ error: "Failed to fetch schedules" });
+  }
+});
+
+// Get babysitter by ID
+router.get("/:id", auth, async (req, res) => {
   try {
     const [babysitter] = await db.query(
-      `SELECT b.*, COUNT(c.id) as children_assigned_count
-       FROM babysitters b
-       LEFT JOIN children c ON b.id = c.assigned_babysitter_id
-       WHERE b.id = ? AND b.is_active = 1
-       GROUP BY b.id`,
+      "SELECT * FROM babysitters WHERE id = ? AND is_active = TRUE",
       [req.params.id]
     );
 
-    if (!babysitter.length) {
+    if (!babysitter || babysitter.length === 0) {
       return res.status(404).json({ message: "Babysitter not found" });
     }
 
     res.json(babysitter[0]);
   } catch (error) {
     console.error("Error fetching babysitter:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching babysitter", error: error.message });
+    res.status(500).json({ error: "Failed to fetch babysitter" });
   }
 });
 
@@ -292,47 +314,6 @@ router.put(
 // Create schedule for babysitter
 router.post("/:id/schedule", [auth, authorize("manager")], async (req, res) => {
   try {
-    const { date, startTime, endTime, sessionType } = req.body;
-
-    // Validate the schedule data
-    if (!date || !startTime || !endTime || !sessionType) {
-      return res
-        .status(400)
-        .json({ message: "Missing required schedule fields" });
-    }
-
-    // Check if babysitter exists and is active
-    const [babysitter] = await db.query(
-      "SELECT * FROM babysitters WHERE id = ? AND is_active = TRUE",
-      [req.params.id]
-    );
-
-    if (!babysitter.length) {
-      return res
-        .status(404)
-        .json({ message: "Babysitter not found or inactive" });
-    }
-
-    // Insert the schedule
-    await db.query(
-      `INSERT INTO babysitter_schedules 
-       (babysitter_id, date, start_time, end_time, session_type, status) 
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [req.params.id, date, startTime, endTime, sessionType]
-    );
-
-    res.json({ message: "Schedule created successfully" });
-  } catch (error) {
-    console.error("Error creating schedule:", error);
-    res
-      .status(500)
-      .json({ message: "Error creating schedule", error: error.message });
-  }
-});
-
-// Create a new schedule for a babysitter
-router.post("/:id/schedule", async (req, res) => {
-  try {
     const { id } = req.params;
     const { date, startTime, endTime, sessionType } = req.body;
 
@@ -370,5 +351,109 @@ router.post("/:id/schedule", async (req, res) => {
     res.status(500).json({ error: "Failed to create schedule" });
   }
 });
+
+// Update schedule status
+router.put(
+  "/schedules/:id/status",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      // Validate status
+      if (!status || !["pending", "approved"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      // Update the status
+      await db.query(
+        "UPDATE babysitter_schedules SET status = ? WHERE id = ?",
+        [status, id]
+      );
+
+      res.json({ message: "Status updated successfully" });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  }
+);
+
+// Get approved schedules for payments
+router.get("/payments", auth, async (req, res) => {
+  try {
+    const [payments] = await db.query(`
+      SELECT 
+        bs.*,
+        b.first_name,
+        b.last_name,
+        COUNT(c.id) as children_count
+      FROM babysitter_schedules bs
+      JOIN babysitters b ON bs.babysitter_id = b.id
+      LEFT JOIN children c ON b.id = c.assigned_babysitter_id
+      WHERE bs.status = 'approved'
+      AND NOT EXISTS (
+        SELECT 1 FROM babysitter_payments bp 
+        WHERE bp.schedule_id = bs.id
+      )
+      GROUP BY bs.id, b.id, bs.date, bs.start_time, bs.end_time, bs.session_type
+      ORDER BY bs.date DESC
+    `);
+
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).json({ error: "Failed to fetch payments" });
+  }
+});
+
+// Clear a payment (mark as completed)
+router.put(
+  "/payments/:id/clear",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Get the schedule details
+      const [schedule] = await db.query(
+        `
+      SELECT 
+        bs.*,
+        COUNT(c.id) as children_count
+      FROM babysitter_schedules bs
+      LEFT JOIN children c ON bs.babysitter_id = c.assigned_babysitter_id
+      WHERE bs.id = ?
+      GROUP BY bs.id
+    `,
+        [id]
+      );
+
+      if (!schedule || schedule.length === 0) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+
+      const { session_type, children_count } = schedule[0];
+      const rate = session_type === "full-day" ? 5000 : 2000;
+      const amount = rate * children_count;
+
+      // Create payment record
+      await db.query(
+        `
+      INSERT INTO babysitter_payments 
+      (schedule_id, amount, status) 
+      VALUES (?, ?, 'completed')
+    `,
+        [id, amount]
+      );
+
+      res.json({ message: "Payment cleared successfully" });
+    } catch (error) {
+      console.error("Error clearing payment:", error);
+      res.status(500).json({ error: "Failed to clear payment" });
+    }
+  }
+);
 
 module.exports = router;
