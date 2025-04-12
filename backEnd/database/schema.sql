@@ -82,7 +82,6 @@ CREATE TABLE IF NOT EXISTS incident_report (
   FOREIGN KEY (reported_by) REFERENCES babysitters(id)
 );
 
-
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   recipient_id INT NOT NULL,
@@ -92,9 +91,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   message TEXT NOT NULL,
   target VARCHAR(25) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-); 
+);
 
-
+CREATE TABLE IF NOT EXISTS babysitter_schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  babysitter_id INT NOT NULL,
+  date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  session_type ENUM('half-day', 'full-day') NOT NULL,
+  status ENUM('pending', 'approved', 'rejected', 'completed') DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (babysitter_id) REFERENCES babysitters(id)
+);
+SELECT * FROM babysitter_schedules;
 SELECT * FROM babysitters;
 select * from children;
 use daystar_daycare;

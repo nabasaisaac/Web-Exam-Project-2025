@@ -289,4 +289,86 @@ router.put(
   }
 );
 
+// Create schedule for babysitter
+router.post("/:id/schedule", [auth, authorize("manager")], async (req, res) => {
+  try {
+    const { date, startTime, endTime, sessionType } = req.body;
+
+    // Validate the schedule data
+    if (!date || !startTime || !endTime || !sessionType) {
+      return res
+        .status(400)
+        .json({ message: "Missing required schedule fields" });
+    }
+
+    // Check if babysitter exists and is active
+    const [babysitter] = await db.query(
+      "SELECT * FROM babysitters WHERE id = ? AND is_active = TRUE",
+      [req.params.id]
+    );
+
+    if (!babysitter.length) {
+      return res
+        .status(404)
+        .json({ message: "Babysitter not found or inactive" });
+    }
+
+    // Insert the schedule
+    await db.query(
+      `INSERT INTO babysitter_schedules 
+       (babysitter_id, date, start_time, end_time, session_type, status) 
+       VALUES (?, ?, ?, ?, ?, 'pending')`,
+      [req.params.id, date, startTime, endTime, sessionType]
+    );
+
+    res.json({ message: "Schedule created successfully" });
+  } catch (error) {
+    console.error("Error creating schedule:", error);
+    res
+      .status(500)
+      .json({ message: "Error creating schedule", error: error.message });
+  }
+});
+
+// Create a new schedule for a babysitter
+router.post("/:id/schedule", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, startTime, endTime, sessionType } = req.body;
+
+    // Validate required fields
+    if (!date || !startTime || !endTime || !sessionType) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Check if babysitter exists and is active
+    const babysitter = await db.query(
+      "SELECT * FROM babysitters WHERE id = ? AND is_active = TRUE",
+      [id]
+    );
+
+    if (babysitter.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Babysitter not found or inactive" });
+    }
+
+    // Insert the schedule
+    const result = await db.query(
+      `INSERT INTO babysitter_schedules 
+       (babysitter_id, date, start_time, end_time, session_type) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, date, startTime, endTime, sessionType]
+    );
+
+    res.status(201).json({
+      message: "Schedule created successfully",
+      scheduleId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creating schedule:", error);
+    res.status(500).json({ error: "Failed to create schedule" });
+  }
+});
+
 module.exports = router;

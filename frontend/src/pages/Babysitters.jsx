@@ -9,6 +9,7 @@ import {
   FaSpinner,
   FaSearch,
   FaTrash,
+  FaTimes,
 } from "react-icons/fa";
 import BabysitterInfoPanel from "../components/babysitters/BabysitterInfoPanel";
 import axios from "axios";
@@ -138,10 +139,48 @@ const Babysitters = () => {
     }
   };
 
-  const handleScheduleSubmit = (e) => {
+  const handleScheduleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement actual schedule logic
-    setShowScheduleForm(false);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `http://localhost:5000/api/babysitters/${selectedBabysitter.id}/schedule`,
+        {
+          date: scheduleData.date,
+          startTime: scheduleData.startTime,
+          endTime: scheduleData.endTime,
+          sessionType: scheduleData.sessionType,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      Swal.fire({
+        title: "Success!",
+        text: "Schedule created successfully",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+
+      setShowScheduleForm(false);
+      setScheduleData({
+        date: new Date().toISOString().split("T")[0],
+        startTime: "08:00",
+        endTime: "17:00",
+        sessionType: "full-day",
+      });
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      Swal.fire({
+        title: "Error!",
+        text: error.response?.data?.error || "Failed to create schedule",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -214,7 +253,7 @@ const Babysitters = () => {
               Babysitters Management
             </h1>
             <p className="mt-2 text-sm text-gray-600">
-              Manage babysitters, payments, and schedules
+              Manage babysitters from here
             </p>
           </div>
           <div className="flex space-x-4">
@@ -796,125 +835,124 @@ const Babysitters = () => {
       )}
 
       {/* Schedule Form Modal */}
-      {showScheduleForm && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-lg font-medium mb-4">Create Schedule</h2>
-            <form onSubmit={handleScheduleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={scheduleData.date}
-                  onChange={(e) =>
-                    setScheduleData({ ...scheduleData, date: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    name="startTime"
-                    value={scheduleData.startTime}
-                    onChange={(e) =>
-                      setScheduleData({
-                        ...scheduleData,
-                        startTime: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
+      {showScheduleForm && selectedBabysitter && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black/70 z-40 animate-fade-in overflow-y-auto">
+          <div className="flex items-center justify-center min-h-full py-12">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-[90%] max-w-4xl relative animate-slide-up my-12">
+              {/* Close Button */}
+              <button
+                onClick={() => setShowScheduleForm(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 focus:outline-none focus:border-[#4299e1] cursor-pointer hover:animate-spin hover:scale-110"
+              >
+                <FaTimes className="text-gray-500" />
+              </button>
+
+              <h2 className="text-xl font-semibold mb-6 text-center">
+                Create Schedule for {selectedBabysitter.first_name}{" "}
+                {selectedBabysitter.last_name}
+              </h2>
+
+              <form onSubmit={handleScheduleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={scheduleData.date}
+                      onChange={(e) =>
+                        setScheduleData({
+                          ...scheduleData,
+                          date: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                      required
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Session Type
+                    </label>
+                    <select
+                      name="sessionType"
+                      value={scheduleData.sessionType}
+                      onChange={(e) =>
+                        setScheduleData({
+                          ...scheduleData,
+                          sessionType: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                      required
+                    >
+                      <option value="half-day">Half Day</option>
+                      <option value="full-day">Full Day</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    End Time
-                  </label>
-                  <input
-                    type="time"
-                    name="endTime"
-                    value={scheduleData.endTime}
-                    onChange={(e) =>
-                      setScheduleData({
-                        ...scheduleData,
-                        endTime: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      name="startTime"
+                      value={scheduleData.startTime}
+                      onChange={(e) =>
+                        setScheduleData({
+                          ...scheduleData,
+                          startTime: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      name="endTime"
+                      value={scheduleData.endTime}
+                      onChange={(e) =>
+                        setScheduleData({
+                          ...scheduleData,
+                          endTime: e.target.value,
+                        })
+                      }
+                      className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Session Type
-                </label>
-                <select
-                  name="sessionType"
-                  value={scheduleData.sessionType}
-                  onChange={(e) =>
-                    setScheduleData({
-                      ...scheduleData,
-                      sessionType: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="half-day">Half Day</option>
-                  <option value="full-day">Full Day</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Children to Assign
-                </label>
-                <select
-                  multiple
-                  name="childrenAssigned"
-                  value={scheduleData.childrenAssigned}
-                  onChange={(e) =>
-                    setScheduleData({
-                      ...scheduleData,
-                      childrenAssigned: Array.from(
-                        e.target.selectedOptions,
-                        (option) => option.value
-                      ),
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="Child 1">Child 1</option>
-                  <option value="Child 2">Child 2</option>
-                  <option value="Child 3">Child 3</option>
-                </select>
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowScheduleForm(false)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Create Schedule
-                </button>
-              </div>
-            </form>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowScheduleForm(false)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none cursor-pointer"
+                  >
+                    Create Schedule
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
