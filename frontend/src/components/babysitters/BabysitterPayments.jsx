@@ -77,55 +77,92 @@ const BabysitterPayments = () => {
   const handleApprovePayment = async (paymentId) => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        Swal.fire({
+          icon: "error",
+          title: "Authentication Error",
+          text: "Please log in again to approve payments.",
+        });
+        return;
+      }
+
       const response = await axios.post(
         `http://localhost:5000/api/babysitters/payments/${paymentId}/clear`,
         {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
 
-      // Show success message with payment details
-      await Swal.fire({
-        icon: "success",
-        title: "Payment Approved",
-        html: `
-          <div class="text-left">
-            <p><strong>Payment Details:</strong></p>
-            <p>Name: ${response.data.payment.first_name} ${
-          response.data.payment.last_name
-        }</p>
-            <p>Date: ${new Date(
-              response.data.payment.date
-            ).toLocaleDateString()}</p>
-            <p>Session Type: ${response.data.payment.session_type}</p>
-            <p>Children Count: ${response.data.payment.children_count}</p>
-            <p>Amount: UGX ${response.data.payment.amount.toLocaleString()}</p>
-          </div>
-        `,
-      });
+      if (response.data.message === "Payment approved successfully") {
+        Swal.fire({
+          icon: "success",
+          title: "Payment Approved",
+          text: "The payment has been successfully approved.",
+        });
 
-      // Refresh payments
-      await fetchPayments();
+        // Refresh the payments list
+        const fetchPayments = async () => {
+          try {
+            setLoading(true);
+            const response = await axios.get(
+              "http://localhost:5000/api/babysitters/payments/all",
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            const processedPayments = response.data.map((payment) => ({
+              id: payment.id,
+              first_name: payment.first_name,
+              last_name: payment.last_name,
+              date: payment.date,
+              session_type: payment.session_type,
+              children_count: payment.children_count,
+              amount: payment.amount,
+              status: payment.status,
+            }));
+
+            setPayments(processedPayments);
+          } catch (error) {
+            console.error("Error fetching payments:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "Failed to refresh payments. Please try again.",
+            });
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        await fetchPayments();
+      }
     } catch (error) {
       console.error("Error approving payment:", error);
+      let errorMessage = "Failed to approve payment. Please try again.";
 
-      // Handle specific error cases
-      if (error.response?.status === 404) {
-        Swal.fire({
-          icon: "error",
-          title: "Payment Not Found",
-          text: "The payment could not be found or has already been processed.",
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to approve payment. Please try again.",
-        });
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = "Payment not found or already cleared.";
+        } else if (error.response.status === 401) {
+          errorMessage = "You are not authorized to approve payments.";
+        } else if (error.response.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        }
+      } else if (error.request) {
+        errorMessage =
+          "Could not connect to the server. Please check your connection.";
       }
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: errorMessage,
+      });
     }
   };
 

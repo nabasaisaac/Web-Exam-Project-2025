@@ -248,102 +248,84 @@ router.get("/payments", auth, async (req, res) => {
   }
 });
 
-// Approve payment
-router.post("/payments/:id/clear", auth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    console.log("Processing payment approval for payment ID:", id);
-    console.log("User ID:", userId);
-
-    // Get payment details
-    const [payments] = await db.query(
-      `SELECT 
-        bp.*,
-        b.first_name,
-        b.last_name
-       FROM babysitter_payments bp
-       JOIN babysitters b ON bp.babysitter_id = b.id
-       WHERE bp.id = ? AND bp.status = 'pending'`,
-      [id]
-    );
-
-    console.log("Payment details:", payments);
-
-    if (!payments || payments.length === 0) {
-      console.log("Payment not found or not pending");
-      return res
-        .status(404)
-        .json({ message: "Payment not found or not pending" });
-    }
-
-    const payment = payments[0];
-
-    // Start a transaction
-    await db.query("START TRANSACTION");
-
+// Clear a payment
+router.post(
+  "/payments/:id/clear",
+  [auth, authorize("manager")],
+  async (req, res) => {
     try {
-      // Update payment status to completed
-      await db.query(
-        "UPDATE babysitter_payments SET status = 'completed' WHERE id = ?",
-        [id]
-      );
+      const paymentId = req.params.id;
+      console.log("Clearing payment with ID:", paymentId);
 
-      // Insert into financial_transactions for record keeping
-      const [result] = await db.query(
-        `INSERT INTO financial_transactions 
-         (type, amount, description, date, status, created_by, babysitter_id, 
-          first_name, last_name, session_type, children_count)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          "expense",
-          payment.amount,
-          `Salary payment for ${payment.first_name} ${payment.last_name} - ${payment.session_type} session`,
-          payment.date,
-          "completed",
-          userId,
-          payment.babysitter_id,
-          payment.first_name,
-          payment.last_name,
-          payment.session_type,
-          payment.children_count,
-        ]
-      );
+      // Start a transaction
+      const connection = await db.getConnection();
+      await connection.beginTransaction();
 
-      // Commit the transaction
-      await db.query("COMMIT");
-
-      // Get the updated payment details
-      const [updatedPayment] = await db.query(
-        `SELECT 
-          bp.*,
-          b.first_name,
-          b.last_name
+      try {
+        // Get the payment details
+        const [payment] = await connection.query(
+          `SELECT bp.*, b.first_name, b.last_name 
          FROM babysitter_payments bp
          JOIN babysitters b ON bp.babysitter_id = b.id
-         WHERE bp.id = ?`,
-        [id]
-      );
+         WHERE bp.id = ? AND bp.status = 'pending'`,
+          [paymentId]
+        );
 
-      res.json({
-        message: "Payment approved and recorded successfully",
-        payment: updatedPayment[0],
-      });
+        if (!payment || payment.length === 0) {
+          await connection.rollback();
+          return res
+            .status(404)
+            .json({ message: "Payment not found or already cleared" });
+        }
+
+        // Update the payment status to completed
+        await connection.query(
+          `UPDATE babysitter_payments 
+         SET status = 'completed' 
+         WHERE id = ?`,
+          [paymentId]
+        );
+
+        // Create a financial transaction record
+        await connection.query(
+          `INSERT INTO financial_transactions 
+         (type, amount, description, date, status, created_by, babysitter_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            "expense",
+            payment[0].amount,
+            `Payment to ${payment[0].first_name} ${payment[0].last_name} for ${payment[0].session_type} session`,
+            payment[0].date,
+            "completed",
+            req.user.id,
+            payment[0].babysitter_id,
+          ]
+        );
+
+        // Commit the transaction
+        await connection.commit();
+
+        res.json({
+          message: "Payment approved successfully",
+          payment: payment[0],
+        });
+      } catch (error) {
+        // Rollback the transaction if any error occurs
+        await connection.rollback();
+        throw error;
+      } finally {
+        // Release the connection
+        connection.release();
+      }
     } catch (error) {
-      // Rollback the transaction if any error occurs
-      await db.query("ROLLBACK");
-      throw error;
+      console.error("Error clearing payment:", error);
+      res.status(500).json({
+        message: "Error clearing payment",
+        error: error.message,
+      });
     }
-  } catch (error) {
-    console.error("Detailed error:", error);
-    console.error("Error stack:", error.stack);
-    res.status(500).json({
-      message: "Error approving payment",
-      error: error.message,
-    });
   }
-});
+);
 
 // Create a new payment record
 router.post("/payments", auth, async (req, res) => {
@@ -464,7 +446,7 @@ router.post("/:id/schedule", [auth, authorize("manager")], async (req, res) => {
       // Get children count for the babysitter
       const [childrenCount] = await db.query(
         `SELECT COUNT(*) as count 
-         FROM children 
+       FROM children 
          WHERE assigned_babysitter_id = ?`,
         [id]
       );
