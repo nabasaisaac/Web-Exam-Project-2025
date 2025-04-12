@@ -255,13 +255,13 @@ const ChildDetails = ({ child, onClose, setChildren, children, user }) => {
 
   const handleDeleteChild = async () => {
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      title: "Delete Child",
+      text: "Are you sure you want to delete this Child?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: "Yes, I am sure",
     });
 
     if (result.isConfirmed) {

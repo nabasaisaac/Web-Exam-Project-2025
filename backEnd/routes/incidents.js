@@ -15,7 +15,7 @@ router.post(
     auth,
     body("child_id").isInt().withMessage("Child ID is required"),
     body("incident_type")
-      .isIn(["health", "behavior", "well-being"])
+      .isIn(["health", "behavior", "well-being", "payment-reminder", "payment-overdue"])
       .withMessage("Invalid incident type"),
     body("description")
       .trim()

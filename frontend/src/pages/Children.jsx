@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 import BabysitterActions from "../components/BabysitterActions";
 import ChildDetails from "../components/ChildDetails";
+import BabysitterSearch from "../components/child/BabysitterSearch";
 import "../styles/auth.css";
 
 const Children = () => {
@@ -14,6 +15,7 @@ const Children = () => {
   const [selectedChild, setSelectedChild] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [children, setChildren] = useState([]);
+  const [babysitters, setBabysitters] = useState([]);
   const [formData, setFormData] = useState({
     fullName: "",
     age: "",
@@ -22,6 +24,7 @@ const Children = () => {
     parentPhone: "",
     specialNeeds: "",
     duration: "full-day",
+    assignedBabysitter: "",
   });
 
   const [errors, setErrors] = useState({
@@ -43,7 +46,6 @@ const Children = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        // console.log(response.data)
         setChildren(response.data);
       } catch (error) {
         console.error("Error fetching children:", error);
@@ -54,13 +56,40 @@ const Children = () => {
     fetchChildren();
   }, [user.id, user.role]);
 
+  // Fetch babysitters when user is a manager
+  useEffect(() => {
+    if (user.role === "manager") {
+      const fetchBabysitters = async () => {
+        try {
+          const response = await axios.get(
+            "http://localhost:5000/api/babysitters",
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          // Map to include fullName for consistency
+          const formattedBabysitters = response.data.map((babysitter) => ({
+            ...babysitter,
+            fullName: `${babysitter.first_name} ${babysitter.last_name}`,
+          }));
+          setBabysitters(formattedBabysitters);
+        } catch (error) {
+          console.error("Error fetching babysitters:", error);
+          toast.error("Failed to fetch babysitters");
+        }
+      };
+      fetchBabysitters();
+    }
+  }, [user.role]);
+
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
   const validatePhone = (phone) => {
-    // Basic phone validation - allows +, numbers, and spaces
     const re = /^\+?[\d\s-]{10,}$/;
     return re.test(phone);
   };
@@ -70,7 +99,7 @@ const Children = () => {
     setIsLoading(true);
 
     // Validate email and phone
-    const emailValid = validateEmail(formData.parentEmail);
+    const emailValid = formData.parentEmail ? validateEmail(formData.parentEmail) : true;
     const phoneValid = validatePhone(formData.parentPhone);
 
     if (!emailValid || !phoneValid) {
@@ -92,13 +121,9 @@ const Children = () => {
       },
       specialNeeds: formData.specialNeeds,
       sessionType: formData.duration,
-      assignedBabysitter: user.id,
+      assignedBabysitter:
+        user.role === "manager" ? formData.assignedBabysitter : user.id,
     };
-
-    // to see whats really happening when when i
-    console.log("Sending data:", requestData);
-    console.log("User role:", user.role);
-    console.log("User ID:", user.id);
 
     try {
       const response = await axios.post(
@@ -111,7 +136,6 @@ const Children = () => {
         }
       );
 
-      console.log("Response:", response.data);
       toast.success("Child registered successfully!");
       setShowRegistrationForm(false);
       setFormData({
@@ -122,6 +146,7 @@ const Children = () => {
         parentPhone: "",
         specialNeeds: "",
         duration: "full-day",
+        assignedBabysitter: "",
       });
       setErrors({
         parentEmail: "",
@@ -130,7 +155,9 @@ const Children = () => {
 
       // Refresh the children list
       const updatedResponse = await axios.get(
-        `http://localhost:5000/api/children?babysitterId=${user.id}`,
+        user.role === "babysitter"
+          ? `http://localhost:5000/api/children?babysitterId=${user.id}`
+          : "http://localhost:5000/api/children",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -175,6 +202,13 @@ const Children = () => {
     }
   };
 
+  const handleBabysitterSelect = (babysitter) => {
+    setFormData((prevState) => ({
+      ...prevState,
+      assignedBabysitter: babysitter.id,
+    }));
+  };
+
   const handleChildDetails = async (childId) => {
     try {
       const response = await axios.get(
@@ -209,13 +243,12 @@ const Children = () => {
 
         {/* Slide-in Overlay */}
         <div
-          className={`fixed top-0 left-0 w-full h-full bg-black/70 transition-transform duration-500 z-40 ${
+          className={`fixed top-0 left-0 w-full h-full bg-black/70 transition-transform duration-500 z-40 overflow-auto ${
             showRegistrationForm ? "translate-y-0" : "-translate-y-full"
           }`}
         >
-          {/* Centered Registration Info Box */}
-          <div className="flex items-center justify-center h-full">
-            <div className="bg-white p-8 rounded-lg shadow-lg w-[90%] max-w-md relative">
+          <div className="max-w-xl mx-auto p-8 pt-16">
+            <div className="bg-white rounded-lg shadow-lg relative">
               {/* Close Button */}
               <button
                 onClick={() => setShowRegistrationForm(false)}
@@ -227,10 +260,10 @@ const Children = () => {
                 <FaTimes className="text-gray-500" />
               </button>
 
-              <h2 className="text-xl font-semibold mb-4 text-center">
+              <h2 className="text-xl font-semibold mb-4 text-center pt-4">
                 Register New Child
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4 p-8">
                 <div className="space-y-1">
                   <input
                     type="text"
@@ -274,7 +307,6 @@ const Children = () => {
                     className={`w-full p-2 border rounded-lg focus:outline-none focus:border-[#4299e1] ${
                       errors.parentEmail ? "border-red-500" : "border-gray-300"
                     }`}
-                    required
                   />
                   {errors.parentEmail && (
                     <p className="text-red-500 text-sm">{errors.parentEmail}</p>
@@ -317,6 +349,18 @@ const Children = () => {
                     <option value="full-day">Full Day</option>
                   </select>
                 </div>
+                {/* Conditional Babysitter Assignment Field for Managers */}
+                {user.role === "manager" && (
+                  <div className="space-y-1">
+                    <span className="block text-sm font-medium text-gray-700">
+                      Assign Child to
+                    </span>
+                    <BabysitterSearch
+                      onSelect={handleBabysitterSelect}
+                      currentBabysitterId={formData.assignedBabysitter}
+                    />
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <button
                     type="submit"
