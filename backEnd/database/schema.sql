@@ -69,24 +69,24 @@ CREATE TABLE IF NOT EXISTS financial_transactions (
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
--- CREATE TABLE IF NOT EXISTS incident_reports (
---   id INT AUTO_INCREMENT PRIMARY KEY,
---   child_id INT NOT NULL,
---   reported_by INT NOT NULL,
---   date DATE NOT NULL,
---   incident_type ENUM('health', 'behavior', 'accident', 'other') NOT NULL,
---   description TEXT NOT NULL,
---   severity ENUM('low', 'medium', 'high') NOT NULL,
---   action_taken TEXT NOT NULL,
---   parent_notified BOOLEAN DEFAULT FALSE,
---   parent_notification_date DATETIME,
---   follow_up_required BOOLEAN DEFAULT FALSE,
---   follow_up_notes TEXT,
---   status ENUM('open', 'resolved', 'closed') DEFAULT 'open',
---   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---   FOREIGN KEY (child_id) REFERENCES children(id),
---   FOREIGN KEY (reported_by) REFERENCES users(id)
--- );
+CREATE TABLE IF NOT EXISTS incident_reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  child_id INT NOT NULL,
+  reported_by INT NOT NULL,
+  date DATE NOT NULL,
+  incident_type ENUM('health', 'behavior', 'accident', 'other') NOT NULL,
+  description TEXT NOT NULL,
+  severity ENUM('low', 'medium', 'high') NOT NULL,
+  action_taken TEXT NOT NULL,
+  parent_notified BOOLEAN DEFAULT FALSE,
+  parent_notification_date DATETIME,
+  follow_up_required BOOLEAN DEFAULT FALSE,
+  follow_up_notes TEXT,
+  status ENUM('open', 'resolved', 'closed') DEFAULT 'open',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (child_id) REFERENCES children(id),
+  FOREIGN KEY (reported_by) REFERENCES users(id)
+);
 
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
