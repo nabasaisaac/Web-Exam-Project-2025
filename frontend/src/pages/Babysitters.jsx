@@ -30,12 +30,12 @@ const Babysitters = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [schedules, setSchedules] = useState([]);
-  const [scheduleData, setScheduleData] = useState({
-    date: new Date().toISOString().split("T")[0],
-    startTime: "08:00",
-    endTime: "17:00",
-    sessionType: "full-day",
-  });
+  // const [scheduleData, setScheduleData] = useState({
+  //   date: new Date().toISOString().split("T")[0],
+  //   startTime: "08:00",
+  //   endTime: "17:00",
+  //   sessionType: "full-day",
+  // });
 
   // Fetch babysitters from backend
   useEffect(() => {
