@@ -255,68 +255,18 @@ router.post(
   async (req, res) => {
     try {
       const paymentId = req.params.id;
-      console.log("Clearing payment with ID:", paymentId);
 
-      // Start a transaction
-      const connection = await db.getConnection();
-      await connection.beginTransaction();
-
-      try {
-        // Get the payment details
-        const [payment] = await connection.query(
-          `SELECT bp.*, b.first_name, b.last_name 
-         FROM babysitter_payments bp
-         JOIN babysitters b ON bp.babysitter_id = b.id
-         WHERE bp.id = ? AND bp.status = 'pending'`,
-          [paymentId]
-        );
-
-        if (!payment || payment.length === 0) {
-          await connection.rollback();
-          return res
-            .status(404)
-            .json({ message: "Payment not found or already cleared" });
-        }
-
-        // Update the payment status to completed
-        await connection.query(
-          `UPDATE babysitter_payments 
+      // Update the payment status to completed
+      await db.query(
+        `UPDATE babysitter_payments 
          SET status = 'completed' 
-         WHERE id = ?`,
-          [paymentId]
-        );
+         WHERE id = ? AND status = 'pending'`,
+        [paymentId]
+      );
 
-        // Create a financial transaction record
-        await connection.query(
-          `INSERT INTO financial_transactions 
-         (type, amount, description, date, status, created_by, babysitter_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            "expense",
-            payment[0].amount,
-            `Payment to ${payment[0].first_name} ${payment[0].last_name} for ${payment[0].session_type} session`,
-            payment[0].date,
-            "completed",
-            req.user.id,
-            payment[0].babysitter_id,
-          ]
-        );
-
-        // Commit the transaction
-        await connection.commit();
-
-        res.json({
-          message: "Payment approved successfully",
-          payment: payment[0],
-        });
-      } catch (error) {
-        // Rollback the transaction if any error occurs
-        await connection.rollback();
-        throw error;
-      } finally {
-        // Release the connection
-        connection.release();
-      }
+      res.json({
+        message: "Payment approved successfully",
+      });
     } catch (error) {
       console.error("Error clearing payment:", error);
       res.status(500).json({

@@ -69,7 +69,7 @@ router.post(
       .notEmpty()
       .withMessage("Description is required"),
     body("date").isISO8601().withMessage("Valid date is required"),
-    body("babysitter_id").optional().isInt(),
+    body("child_id").optional().isInt(),
   ],
   async (req, res) => {
     try {
@@ -80,16 +80,16 @@ router.post(
 
       const [result] = await db.query(
         `INSERT INTO financial_transactions 
-         (type, amount, description, date, status, created_by, babysitter_id)
+         (type, category, amount, description, date, created_by, child_id)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           req.body.type,
+          req.body.category,
           req.body.amount,
           req.body.description,
           req.body.date,
-          req.body.status || "pending",
           req.user.id,
-          req.body.babysitter_id || null,
+          req.body.child_id || null,
         ]
       );
 
