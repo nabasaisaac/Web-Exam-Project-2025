@@ -38,16 +38,16 @@ const BabysitterDashboard = () => {
     },
   ];
 
-  // const quickActions = [
-  //   { name: "View My Children", path: "/my-children", icon: FaChild },
-  //   { name: "Daily Schedule", path: "/my-schedule", icon: FaClock },
-  //   {
-  //     name: "Report Incident",
-  //     path: "/report-incident",
-  //     icon: FaExclamationTriangle,
-  //   },
-  //   { name: "Attendance Log", path: "/attendance", icon: FaClipboardList },
-  // ];
+  const quickActions = [
+    { name: "View My Children", path: "/my-children", icon: FaChild },
+    { name: "Daily Schedule", path: "/my-schedule", icon: FaClock },
+    {
+      name: "Report Incident",
+      path: "/report-incident",
+      icon: FaExclamationTriangle,
+    },
+    { name: "Attendance Log", path: "/attendance", icon: FaClipboardList },
+  ];
 
   const recentActivities = [
     {
