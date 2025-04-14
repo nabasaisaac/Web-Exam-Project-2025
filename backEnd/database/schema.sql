@@ -86,6 +86,9 @@ CREATE TABLE IF NOT EXISTS incident_report (
   FOREIGN KEY (reported_by) REFERENCES babysitters(id)
 );
 
+use daystar_daycare;
+select * from financial_transactions;
+
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   recipient_id INT NOT NULL,

@@ -1,95 +1,103 @@
 import React, { useState } from "react";
-import { FaTimes, FaSearch } from "react-icons/fa";
+import { FaTimes } from "react-icons/fa";
 import axios from "axios";
 import Swal from "sweetalert2";
+import ChildSearch from "./ChildSearch";
 
 const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
   const [formData, setFormData] = useState({
-    type: "expense",
+    type: "income",
     category: "",
     amount: "",
     description: "",
     date: new Date().toISOString().split("T")[0],
-    reference_id: "",
+    child_id: null,
   });
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [selectedBabysitter, setSelectedBabysitter] = useState(null);
-
-  const handleSearch = async (query) => {
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/babysitters/search?q=${query}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setSearchResults(response.data);
-    } catch (error) {
-      console.error("Error searching babysitters:", error);
-    }
-  };
-
-  const handleSelectBabysitter = (babysitter) => {
-    setSelectedBabysitter(babysitter);
-    setFormData({ ...formData, reference_id: babysitter.id });
-    setSearchResults([]);
-    setSearchTerm(`${babysitter.first_name} ${babysitter.last_name}`);
-  };
+  const [showChildSearch, setShowChildSearch] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate amount is positive
-    if (parseFloat(formData.amount) <= 0) {
-      Swal.fire({
-        title: "Error!",
-        text: "Amount must be greater than 0",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        "http://localhost:5000/api/financial-transactions",
+      if (!token) {
+        Swal.fire("Error!", "Please log in to continue", "error");
+        return;
+      }
+
+      // Validate amount
+      if (isNaN(formData.amount) || formData.amount <= 0) {
+        Swal.fire("Error!", "Please enter a valid amount", "error");
+        return;
+      }
+
+      // Validate required fields
+      if (!formData.category || !formData.description) {
+        Swal.fire("Error!", "Please fill in all required fields", "error");
+        return;
+      }
+
+      // If category is parent-payment, child_id is required
+      if (formData.category === "parent-payment" && !formData.child_id) {
+        Swal.fire(
+          "Error!",
+          "Please select a child for parent payment",
+          "error"
+        );
+        return;
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/api/financial/transactions",
         formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
 
-      Swal.fire({
-        title: "Success!",
-        text: "Transaction added successfully",
-        icon: "success",
-        confirmButtonText: "OK",
-      });
-
-      onTransactionAdded();
-      onClose();
+      if (response.data.message === "Transaction recorded successfully") {
+        Swal.fire("Success!", "Transaction added successfully", "success");
+        onTransactionAdded();
+        onClose();
+      }
     } catch (error) {
       console.error("Error adding transaction:", error);
-      Swal.fire({
-        title: "Error!",
-        text: error.response?.data?.error || "Failed to add transaction",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
+      let errorMessage = "Failed to add transaction";
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            errorMessage = "Please log in to continue";
+            break;
+          case 500:
+            errorMessage = "Server error. Please try again later";
+            break;
+          default:
+            errorMessage = error.response.data.error || errorMessage;
+        }
+      }
+      Swal.fire("Error!", errorMessage, "error");
     }
+  };
+
+  const handleChildSelect = (child) => {
+    setFormData((prev) => ({
+      ...prev,
+      child_id: child.id,
+    }));
+    setShowChildSearch(false);
+  };
+
+  const handleTypeChange = (e) => {
+    const newType = e.target.value;
+    setFormData({
+      ...formData,
+      type: newType,
+      category: "", // Reset category when type changes
+      child_id: null, // Reset child_id when type changes
+    });
   };
 
   return (
@@ -105,30 +113,24 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
           </button>
 
           <h2 className="text-xl font-semibold mb-6 text-center">
-            Add Transaction
+            Add New Transaction
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Transaction Type
+                  Type
                 </label>
                 <select
                   name="type"
                   value={formData.type}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      type: e.target.value,
-                      category: "",
-                    })
-                  }
+                  onChange={handleTypeChange}
                   className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 focus:border-indigo-500 focus:outline-none sm:text-sm"
                   required
                 >
-                  <option value="expense">Expense</option>
                   <option value="income">Income</option>
+                  <option value="expense">Expense</option>
                 </select>
               </div>
 
@@ -145,8 +147,10 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                   className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 focus:border-indigo-500 focus:outline-none sm:text-sm"
                   required
                 >
-                  <option value="">Select a category</option>
-                  {formData.type === "expense" ? (
+                  <option value="">Select Category</option>
+                  {formData.type === "income" ? (
+                    <option value="parent-payment">Parent Payment</option>
+                  ) : (
                     <>
                       <option value="Procurement of toys and play materials">
                         Procurement of toys and play materials
@@ -156,8 +160,6 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                       </option>
                       <option value="Utility bills">Utility bills</option>
                     </>
-                  ) : (
-                    <option value="Parent payment">Parent payment</option>
                   )}
                 </select>
               </div>
@@ -173,15 +175,11 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                   name="amount"
                   value={formData.amount}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      amount: Math.abs(e.target.value),
-                    })
+                    setFormData({ ...formData, amount: e.target.value })
                   }
                   className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                  placeholder="Enter amount"
                   required
-                  min="0"
-                  step="0.01"
                 />
               </div>
 
@@ -202,54 +200,45 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
               </div>
             </div>
 
+            {formData.category === "parent-payment" && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Child
+                </label>
+                {showChildSearch ? (
+                  <ChildSearch
+                    onSelect={handleChildSelect}
+                    currentChildId={formData.child_id}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowChildSearch(true)}
+                    className="w-full p-2 border border-gray-300 rounded-lg text-left text-gray-500 hover:border-indigo-500"
+                  >
+                    {formData.child_id
+                      ? "Change selected child"
+                      : "Select a child"}
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Description
               </label>
-              <input
-                type="text"
+              <textarea
                 name="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
+                placeholder="Enter description"
+                rows={3}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Reference (Babysitter)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search babysitters..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    handleSearch(e.target.value);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 px-4 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none sm:text-sm"
-                />
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <FaSearch className="h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              {searchResults.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
-                  {searchResults.map((babysitter) => (
-                    <div
-                      key={babysitter.id}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleSelectBabysitter(babysitter)}
-                    >
-                      {babysitter.first_name} {babysitter.last_name}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">
