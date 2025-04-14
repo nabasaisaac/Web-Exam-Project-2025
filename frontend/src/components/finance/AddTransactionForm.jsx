@@ -27,7 +27,8 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
       }
 
       // Validate amount
-      if (isNaN(formData.amount) || formData.amount <= 0) {
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
         Swal.fire("Error!", "Please enter a valid amount", "error");
         return;
       }
@@ -52,12 +53,14 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
       const submitData = {
         type: formData.type,
         category: formData.category,
-        amount: formData.amount,
+        amount: amount,
         description: formData.description,
         date: formData.date,
         child_id:
           formData.category === "parent-payment" ? formData.child_id : null,
       };
+
+      console.log("Submitting data:", submitData); // Debug log
 
       const response = await axios.post(
         "http://localhost:5000/api/financial/transactions",
@@ -70,6 +73,8 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
         }
       );
 
+      console.log("Response:", response.data); // Debug log
+
       if (response.data.message === "Transaction recorded successfully") {
         Swal.fire("Success!", "Transaction added successfully", "success");
         onTransactionAdded();
@@ -77,6 +82,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
       }
     } catch (error) {
       console.error("Error adding transaction:", error);
+      console.error("Error response:", error.response?.data); // Debug log
       let errorMessage = "Failed to add transaction";
       if (error.response) {
         switch (error.response.status) {
@@ -85,6 +91,11 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
             break;
           case 400:
             errorMessage = error.response.data.error || "Invalid data provided";
+            if (error.response.data.errors) {
+              errorMessage = error.response.data.errors
+                .map((err) => err.msg)
+                .join(", ");
+            }
             break;
           case 500:
             errorMessage = "Server error. Please try again later";
@@ -98,16 +109,26 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
   };
 
   const handleChildSelect = (child) => {
+    console.log("Selected child:", child); // Debug log
+    if (!child || !child.id) {
+      console.error("Invalid child data received:", child);
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       child_id: child.id,
     }));
-    setSelectedChild(child);
+    setSelectedChild({
+      id: child.id,
+      first_name: child.first_name,
+      last_name: child.last_name,
+    });
     setShowChildSearch(false);
   };
 
   const handleTypeChange = (e) => {
     const newType = e.target.value;
+    console.log("Type changed to:", newType); // Debug log
     setFormData({
       ...formData,
       type: newType,
