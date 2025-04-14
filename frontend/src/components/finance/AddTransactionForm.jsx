@@ -15,6 +15,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
   });
 
   const [showChildSearch, setShowChildSearch] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,9 +48,20 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
         return;
       }
 
+      // Prepare data for submission
+      const submitData = {
+        type: formData.type,
+        category: formData.category,
+        amount: formData.amount,
+        description: formData.description,
+        date: formData.date,
+        child_id:
+          formData.category === "parent-payment" ? formData.child_id : null,
+      };
+
       const response = await axios.post(
         "http://localhost:5000/api/financial/transactions",
-        formData,
+        submitData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,6 +83,9 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
           case 401:
             errorMessage = "Please log in to continue";
             break;
+          case 400:
+            errorMessage = error.response.data.error || "Invalid data provided";
+            break;
           case 500:
             errorMessage = "Server error. Please try again later";
             break;
@@ -87,6 +102,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
       ...prev,
       child_id: child.id,
     }));
+    setSelectedChild(child);
     setShowChildSearch(false);
   };
 
@@ -98,6 +114,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
       category: "", // Reset category when type changes
       child_id: null, // Reset child_id when type changes
     });
+    setSelectedChild(null); // Reset selected child when type changes
   };
 
   return (
@@ -211,15 +228,25 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                     currentChildId={formData.child_id}
                   />
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowChildSearch(true)}
-                    className="w-full p-2 border border-gray-300 rounded-lg text-left text-gray-500 hover:border-indigo-500"
-                  >
-                    {formData.child_id
-                      ? "Change selected child"
-                      : "Select a child"}
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowChildSearch(true)}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-left text-gray-500 hover:border-indigo-500"
+                    >
+                      {selectedChild
+                        ? "Change selected child"
+                        : "Select a child"}
+                    </button>
+                    {selectedChild && (
+                      <div className="p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
+                        <p className="text-sm text-indigo-700">
+                          Selected: {selectedChild.first_name}{" "}
+                          {selectedChild.last_name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
