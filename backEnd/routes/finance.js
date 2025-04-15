@@ -61,6 +61,31 @@ router.post(
     body("type")
       .isIn(["income", "expense"])
       .withMessage("Invalid transaction type"),
+    body("category")
+      .notEmpty()
+      .withMessage("Category is required")
+      .custom((value, { req }) => {
+        const validIncomeCategories = ["parent-payment"];
+        const validExpenseCategories = [
+          "procurement",
+          "maintenance",
+          "utilities",
+        ];
+
+        if (
+          req.body.type === "income" &&
+          !validIncomeCategories.includes(value)
+        ) {
+          throw new Error("Invalid income category");
+        }
+        if (
+          req.body.type === "expense" &&
+          !validExpenseCategories.includes(value)
+        ) {
+          throw new Error("Invalid expense category");
+        }
+        return true;
+      }),
     body("amount")
       .isFloat({ min: 0 })
       .withMessage("Amount must be a positive number"),

@@ -120,8 +120,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
     }));
     setSelectedChild({
       id: child.id,
-      first_name: child.first_name,
-      last_name: child.last_name,
+      full_name: child.full_name, // Use full_name instead of first_name/last_name
     });
     setShowChildSearch(false);
   };
@@ -190,13 +189,13 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                     <option value="parent-payment">Parent Payment</option>
                   ) : (
                     <>
-                      <option value="Procurement of toys and play materials">
+                      <option value="procurement">
                         Procurement of toys and play materials
                       </option>
-                      <option value="Center maintenance and repairs">
+                      <option value="maintenance">
                         Center maintenance and repairs
                       </option>
-                      <option value="Utility bills">Utility bills</option>
+                      <option value="utilities">Utility bills</option>
                     </>
                   )}
                 </select>
@@ -262,8 +261,7 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                     {selectedChild && (
                       <div className="p-2 bg-indigo-50/50 rounded-lg border border-indigo-100">
                         <p className="text-sm text-indigo-700">
-                          Selected: {selectedChild.first_name}{" "}
-                          {selectedChild.last_name}
+                          Selected: {selectedChild.full_name}
                         </p>
                       </div>
                     )}
