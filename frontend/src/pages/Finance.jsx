@@ -52,6 +52,13 @@ const Finance = () => {
 
   const [budgets, setBudgets] = useState([]);
   const [budgetTracking, setBudgetTracking] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [incomeTransactionCount, setIncomeTransactionCount] = useState(0);
+  const [netIncome, setNetIncome] = useState(0);
+  const [totalBudget, setTotalBudget] = useState(0);
 
   // Add this useEffect to fetch budgets
   useEffect(() => {
@@ -115,6 +122,92 @@ const Finance = () => {
     fetchData();
   };
 
+  // Add this useEffect to fetch filtered expenses
+  useEffect(() => {
+    const fetchFilteredExpenses = async () => {
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:5000/api/financial/expenses/filtered?timeRange=${timeRange}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setFilteredExpenses(response.data.expenses);
+        setTotalExpenses(response.data.totalExpenses);
+      } catch (error) {
+        console.error("Error fetching filtered expenses:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFilteredExpenses();
+  }, [timeRange]); // This will run whenever timeRange changes
+
+  // Add this useEffect to fetch filtered income
+  useEffect(() => {
+    const fetchFilteredIncome = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [incomeResponse, expensesResponse] = await Promise.all([
+          axios.get(
+            `http://localhost:5000/api/financial/income/filtered?timeRange=${timeRange}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+          axios.get(
+            `http://localhost:5000/api/financial/expenses/filtered?timeRange=${timeRange}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+        ]);
+
+        setTotalIncome(incomeResponse.data.totalIncome);
+        setIncomeTransactionCount(incomeResponse.data.transactionCount);
+        setTotalExpenses(expensesResponse.data.totalExpenses);
+        setNetIncome(
+          incomeResponse.data.totalIncome - expensesResponse.data.totalExpenses
+        );
+      } catch (error) {
+        console.error("Error fetching financial data:", error);
+      }
+    };
+
+    fetchFilteredIncome();
+  }, [timeRange]);
+
+  // Add this useEffect to fetch total budget
+  useEffect(() => {
+    const fetchTotalBudget = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/financial/budgets/total",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setTotalBudget(response.data.totalBudget);
+      } catch (error) {
+        console.error("Error fetching total budget:", error);
+      }
+    };
+
+    fetchTotalBudget();
+  }, []);
+
   // Sample data - to be replaced with actual API calls
   const financialData = {
     overview: {
@@ -167,9 +260,19 @@ const Finance = () => {
   };
 
   const formatCurrency = (amount) => {
+    if (amount >= 1000000) {
+      return new Intl.NumberFormat("en-UG", {
+        style: "currency",
+        currency: "UGX",
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 1,
+      }).format(amount);
+    }
     return new Intl.NumberFormat("en-UG", {
       style: "currency",
       currency: "UGX",
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -213,6 +316,57 @@ const Finance = () => {
   const handleTransactionAdded = () => {
     // Refresh transactions data
     // TODO: Implement actual data refresh
+  };
+
+  // Update the expenses tab content
+  const renderExpensesTab = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h2 className="text-lg font-medium text-gray-900">Total Expenses</h2>
+          <p className="text-3xl font-bold text-red-600">
+            {formatCurrency(totalExpenses)}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            For {timeRange === "day" ? "today" : `this ${timeRange}`}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {filteredExpenses.map((expense) => (
+            <div key={expense.category} className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-medium text-gray-900">
+                  {expense.category}
+                </h3>
+                <span className="text-sm font-medium text-red-600">
+                  {formatCurrency(expense.total_amount)}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-red-600 h-2.5 rounded-full"
+                  style={{
+                    width: `${(expense.total_amount / totalExpenses) * 100}%`,
+                  }}
+                ></div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                {expense.transaction_count} transactions
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -291,25 +445,72 @@ const Finance = () => {
             <div className="p-6">
               {/* Financial Overview Cards */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {Object.entries(financialData.overview).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="bg-white overflow-hidden shadow rounded-lg"
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-1">
-                          <dt className="text-sm font-medium text-gray-500 truncate capitalize">
-                            {key.replace(/([A-Z])/g, " $1").trim()}
-                          </dt>
-                          <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                            {formatCurrency(value)}
-                          </dd>
-                        </div>
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Total Income
+                        </dt>
+                        <dd className="mt-1 text-3xl font-semibold text-indigo-600">
+                          {formatCurrency(totalIncome)}
+                        </dd>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {incomeTransactionCount} transactions
+                        </p>
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Total Expenses
+                        </dt>
+                        <dd className="mt-1 text-3xl font-semibold text-red-600">
+                          {formatCurrency(totalExpenses)}
+                        </dd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Net Income
+                        </dt>
+                        <dd
+                          className={`mt-1 text-3xl font-semibold ${
+                            netIncome >= 0 ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {formatCurrency(netIncome)}
+                        </dd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Monthly Budget
+                        </dt>
+                        <dd className="mt-1 text-3xl font-semibold text-indigo-600">
+                          {formatCurrency(totalBudget)}
+                        </dd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Chart */}
@@ -358,44 +559,7 @@ const Finance = () => {
             </div>
           )}
 
-          {activeTab === "expenses" && (
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Expense Categories
-              </h2>
-              <div className="space-y-4">
-                {financialData.expenses.map((expense) => (
-                  <div
-                    key={expense.category}
-                    className="bg-gray-50 p-4 rounded-lg"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {expense.category}
-                      </h3>
-                      <span className="text-sm font-medium text-red-600">
-                        {formatCurrency(expense.amount)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-red-600 h-2.5 rounded-full"
-                        style={{
-                          width: `${calculateProgress(
-                            expense.amount,
-                            expense.budget
-                          )}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      Budget: {formatCurrency(expense.budget)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === "expenses" && renderExpensesTab()}
 
           {activeTab === "budgets" && (
             <div className="p-6">

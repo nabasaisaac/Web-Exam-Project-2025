@@ -364,4 +364,149 @@ router.get(
   }
 );
 
+// Get filtered expenses
+router.get(
+  "/expenses/filtered",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    try {
+      const { timeRange } = req.query;
+      let dateFilter = "";
+      let params = [];
+
+      // Set date range based on timeRange parameter
+      const today = new Date();
+      switch (timeRange) {
+        case "day":
+          dateFilter = "DATE(date) = CURDATE()";
+          break;
+        case "week":
+          dateFilter = "YEARWEEK(date) = YEARWEEK(CURDATE())";
+          break;
+        case "month":
+          dateFilter =
+            "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          break;
+        case "year":
+          dateFilter = "YEAR(date) = YEAR(CURDATE())";
+          break;
+        default:
+          dateFilter =
+            "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+      }
+
+      const query = `
+      SELECT 
+        category,
+        SUM(amount) as total_amount,
+        COUNT(*) as transaction_count
+      FROM financial_transactions
+      WHERE type = 'expense'
+      AND ${dateFilter}
+      GROUP BY category
+      ORDER BY total_amount DESC
+    `;
+
+      const [expenses] = await db.query(query, params);
+
+      // Calculate total expenses
+      const totalExpenses = expenses.reduce(
+        (sum, expense) => sum + expense.total_amount,
+        0
+      );
+
+      res.json({
+        expenses,
+        totalExpenses,
+        timeRange,
+      });
+    } catch (error) {
+      console.error("Error fetching filtered expenses:", error);
+      res.status(500).json({
+        message: "Error fetching filtered expenses",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get filtered income
+router.get(
+  "/income/filtered",
+  [auth, authorize("manager")],
+  async (req, res) => {
+    try {
+      const { timeRange } = req.query;
+      let dateFilter = "";
+      let params = [];
+
+      // Set date range based on timeRange parameter
+      const today = new Date();
+      switch (timeRange) {
+        case "day":
+          dateFilter = "DATE(date) = CURDATE()";
+          break;
+        case "week":
+          dateFilter = "YEARWEEK(date) = YEARWEEK(CURDATE())";
+          break;
+        case "month":
+          dateFilter =
+            "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          break;
+        case "year":
+          dateFilter = "YEAR(date) = YEAR(CURDATE())";
+          break;
+        default:
+          dateFilter =
+            "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+      }
+
+      const query = `
+      SELECT 
+        SUM(amount) as total_income,
+        COUNT(*) as transaction_count
+      FROM financial_transactions
+      WHERE type = 'income'
+      AND ${dateFilter}
+    `;
+
+      const [result] = await db.query(query, params);
+
+      res.json({
+        totalIncome: result[0].total_income || 0,
+        transactionCount: result[0].transaction_count || 0,
+        timeRange,
+      });
+    } catch (error) {
+      console.error("Error fetching filtered income:", error);
+      res.status(500).json({
+        message: "Error fetching filtered income",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Get total monthly budget
+router.get("/budgets/total", [auth, authorize("manager")], async (req, res) => {
+  try {
+    const query = `
+      SELECT COALESCE(SUM(amount), 0) as total_budget
+      FROM budgets
+      WHERE period_type = 'monthly'
+      AND start_date <= CURDATE()
+      AND (end_date IS NULL OR end_date >= CURDATE())
+    `;
+
+    const [result] = await db.query(query);
+    res.json({ totalBudget: result[0].total_budget });
+  } catch (error) {
+    console.error("Error fetching total budget:", error);
+    res.status(500).json({
+      message: "Error fetching total budget",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;

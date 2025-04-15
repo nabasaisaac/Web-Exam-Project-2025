@@ -165,3 +165,9 @@ CREATE TABLE IF NOT EXISTS budget_tracking (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (budget_id) REFERENCES budgets(id)
 );
+
+-- To be deleted later
+USE daystar_daycare;
+SELECT * FROM financial_transactions;
+SELECT * FROM budgets;
+SELECT * FROM budget_tracking;
