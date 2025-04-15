@@ -19,6 +19,7 @@ import {
 } from "chart.js";
 import AddTransactionForm from "../components/finance/AddTransactionForm";
 import AddBudgetForm from "../components/finance/AddBudgetForm";
+import IncomeSources from "../components/finance/IncomeSources";
 import axios from "axios";
 
 ChartJS.register(
@@ -178,31 +179,36 @@ const Finance = () => {
     fetchData();
   };
 
-  // Add this useEffect to fetch filtered expenses
+  // Add this useEffect to fetch total expenses
   useEffect(() => {
-    const fetchFilteredExpenses = async () => {
+    const fetchTotalExpenses = async () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:5000/api/financial/expenses/filtered?timeRange=${timeRange}`,
+          `http://localhost:5000/api/financial/expenses/total?timeRange=${timeRange}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        setFilteredExpenses(response.data.expenses);
-        setTotalExpenses(response.data.totalExpenses);
+        setFilteredExpenses(response.data);
+        // Calculate total expenses from the response
+        const total = response.data.reduce(
+          (sum, expense) => sum + Number(expense.total_amount),
+          0
+        );
+        setTotalExpenses(total);
       } catch (error) {
-        console.error("Error fetching filtered expenses:", error);
+        console.error("Error fetching total expenses:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchFilteredExpenses();
-  }, [timeRange]); // This will run whenever timeRange changes
+    fetchTotalExpenses();
+  }, [timeRange]);
 
   // Update the useEffect for filtered income and expenses to update the static data
   useEffect(() => {
@@ -663,20 +669,20 @@ const Finance = () => {
                 </div>
 
                 <div className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="p-5">
-                      <div className="flex items-center">
-                        <div className="flex-1">
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-1">
                         <dt className="text-sm font-medium text-gray-500 truncate">
                           Net Income
-                          </dt>
+                        </dt>
                         <dd
                           className={`mt-1 text-3xl font-semibold ${
                             netIncome >= 0 ? "text-green-600" : "text-red-600"
                           }`}
                         >
                           {formatCurrency(netIncome)}
-                          </dd>
-                        </div>
+                        </dd>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -709,37 +715,7 @@ const Finance = () => {
               <h2 className="text-lg font-medium text-gray-900 mb-4">
                 Income Sources
               </h2>
-              <div className="space-y-4">
-                {financialData.incomeSources.map((source) => (
-                  <div
-                    key={source.category}
-                    className="bg-gray-50 p-4 rounded-lg"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {source.category}
-                      </h3>
-                      <span className="text-sm font-medium text-indigo-600">
-                        {formatCurrency(source.amount)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-indigo-600 h-2.5 rounded-full"
-                        style={{
-                          width: `${calculateProgress(
-                            source.amount,
-                            source.target
-                          )}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">
-                      Target: {formatCurrency(source.target)}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <IncomeSources timeRange={timeRange} />
             </div>
           )}
 
@@ -751,9 +727,9 @@ const Finance = () => {
                 Budget Management
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {financialData.expenses.map((expense) => (
+                {financialData.expenses.map((expense, index) => (
                   <div
-                    key={expense.category}
+                    key={`${expense.category}-${index}`}
                     className="bg-white border rounded-lg p-4"
                   >
                     <h3 className="text-sm font-medium text-gray-900">
@@ -808,9 +784,9 @@ const Finance = () => {
                     Daily Summary
                   </h3>
                   <div className="space-y-4">
-                    {financialData.transactions.map((transaction) => (
+                    {financialData.transactions.map((transaction, index) => (
                       <div
-                        key={transaction.id}
+                        key={`${transaction.id}-${index}`}
                         className="flex justify-between items-center"
                       >
                         <div>
@@ -840,9 +816,9 @@ const Finance = () => {
                     Budget Adherence
                   </h3>
                   <div className="space-y-4">
-                    {financialData.expenses.map((expense) => (
+                    {financialData.expenses.map((expense, index) => (
                       <div
-                        key={expense.category}
+                        key={`${expense.category}-${index}`}
                         className="flex justify-between items-center"
                       >
                         <span className="text-sm text-gray-900">

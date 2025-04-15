@@ -8,47 +8,43 @@ const Babysitter = require("../models/Babysitter");
 const db = require("../config/database");
 
 // Get all financial transactions
-router.get("/transactions", [auth, authorize("manager")], async (req, res) => {
+router.get("/transactions", auth, async (req, res) => {
   try {
-    const { startDate, endDate, type, status } = req.query;
+    const { type, timeRange } = req.query;
     let query = `
       SELECT 
         ft.*,
-        b.first_name,
-        b.last_name,
         u.username as created_by_name
       FROM financial_transactions ft
-      LEFT JOIN babysitters b ON ft.babysitter_id = b.id
       LEFT JOIN users u ON ft.created_by = u.id
       WHERE 1=1
     `;
-    const params = [];
-
-    if (startDate && endDate) {
-      query += " AND ft.date BETWEEN ? AND ?";
-      params.push(startDate, endDate);
-    }
 
     if (type) {
-      query += " AND ft.type = ?";
-      params.push(type);
+      query += ` AND ft.type = '${type}'`;
     }
 
-    if (status) {
-      query += " AND ft.status = ?";
-      params.push(status);
+    if (timeRange) {
+      switch (timeRange) {
+        case "week":
+          query += ` AND YEARWEEK(ft.date) = YEARWEEK(CURDATE())`;
+          break;
+        case "month":
+          query += ` AND YEAR(ft.date) = YEAR(CURDATE()) AND MONTH(ft.date) = MONTH(CURDATE())`;
+          break;
+        case "year":
+          query += ` AND YEAR(ft.date) = YEAR(CURDATE())`;
+          break;
+      }
     }
 
-    query += " ORDER BY ft.date DESC";
+    query += ` ORDER BY ft.date DESC`;
 
-    const [transactions] = await db.query(query, params);
+    const [transactions] = await db.query(query);
     res.json(transactions);
   } catch (error) {
     console.error("Error fetching transactions:", error);
-    res.status(500).json({
-      message: "Error fetching transactions",
-      error: error.message,
-    });
+    res.status(500).json({ error: "Failed to fetch transactions" });
   }
 });
 
@@ -505,6 +501,47 @@ router.get("/budgets/total", [auth, authorize("manager")], async (req, res) => {
       message: "Error fetching total budget",
       error: error.message,
     });
+  }
+});
+
+// Get total expenses by category
+router.get("/expenses/total", auth, async (req, res) => {
+  try {
+    const { timeRange } = req.query;
+    let dateFilter = "";
+
+    if (timeRange) {
+      switch (timeRange) {
+        case "week":
+          dateFilter = "AND YEARWEEK(date) = YEARWEEK(CURDATE())";
+          break;
+        case "month":
+          dateFilter =
+            "AND YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          break;
+        case "year":
+          dateFilter = "AND YEAR(date) = YEAR(CURDATE())";
+          break;
+      }
+    }
+
+    const query = `
+      SELECT 
+        category,
+        SUM(amount) as total_amount,
+        COUNT(*) as transaction_count
+      FROM financial_transactions
+      WHERE type = 'expense'
+      ${dateFilter}
+      GROUP BY category
+      ORDER BY total_amount DESC
+    `;
+
+    const [expenses] = await db.query(query);
+    res.json(expenses);
+  } catch (error) {
+    console.error("Error fetching total expenses:", error);
+    res.status(500).json({ error: "Failed to fetch total expenses" });
   }
 });
 
