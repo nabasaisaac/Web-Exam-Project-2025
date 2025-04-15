@@ -527,7 +527,8 @@ router.get("/expenses/total", auth, async (req, res) => {
       }
     }
 
-    const query = `
+    // Get regular expenses
+    const [regularExpenses] = await db.query(`
       SELECT 
         category,
         SUM(amount) as total_amount,
@@ -536,10 +537,34 @@ router.get("/expenses/total", auth, async (req, res) => {
       WHERE type = 'expense'
       ${dateFilter}
       GROUP BY category
-      ORDER BY total_amount DESC
-    `;
+    `);
 
-    const [expenses] = await db.query(query);
+    // Get babysitter payments
+    const [babysitterPayments] = await db.query(`
+      SELECT 
+        'Babysitter Salaries' as category,
+        SUM(amount) as total_amount,
+        COUNT(*) as transaction_count
+      FROM babysitter_payments
+      WHERE status = 'completed'
+      ${dateFilter}
+    `);
+
+    // Combine the results
+    const expenses = [...regularExpenses];
+
+    // Add babysitter payments if they exist
+    if (babysitterPayments[0]?.total_amount) {
+      expenses.push({
+        category: "Babysitter Salaries",
+        total_amount: babysitterPayments[0].total_amount,
+        transaction_count: babysitterPayments[0].transaction_count,
+      });
+    }
+
+    // Sort by total amount
+    expenses.sort((a, b) => b.total_amount - a.total_amount);
+
     res.json(expenses);
   } catch (error) {
     console.error("Error fetching total expenses:", error);
