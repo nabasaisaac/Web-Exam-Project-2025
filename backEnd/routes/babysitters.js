@@ -195,15 +195,25 @@ router.delete("/:id", [auth, authorize("manager")], async (req, res) => {
 // Get babysitter's payment history
 router.get("/:id/payments", auth, async (req, res) => {
   try {
-    const payments = await FinancialTransaction.find({
-      reference: req.params.id,
-      referenceModel: "Babysitter",
-      type: "expense",
-      category: "babysitter-salary",
-    }).sort({ date: -1 });
+    const { id } = req.params;
+
+    const [payments] = await db.query(
+      `SELECT 
+        id,
+        date,
+        session_type,
+        children_count,
+        amount,
+        status
+      FROM babysitter_payments 
+      WHERE babysitter_id = ? 
+      ORDER BY date DESC`,
+      [id]
+    );
 
     res.json(payments);
   } catch (error) {
+    console.error("Error fetching payment history:", error);
     res.status(500).json({
       message: "Error fetching payment history",
       error: error.message,
@@ -506,6 +516,110 @@ router.get("/payments/all", auth, async (req, res) => {
   } catch (error) {
     console.error("Error fetching payments:", error);
     res.status(500).json({ error: "Failed to fetch payments" });
+  }
+});
+
+// Get assigned children count for a babysitter
+router.get("/:id/children/count", auth, async (req, res) => {
+  try {
+    const [results] = await db.query(
+      "SELECT COUNT(*) as count FROM children WHERE assigned_babysitter_id = ?",
+      [req.params.id]
+    );
+    res.json({ count: results[0].count });
+  } catch (error) {
+    console.error("Error fetching children count:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get babysitter payments summary
+router.get("/:id/payments/summary", auth, async (req, res) => {
+  try {
+    const [pending] = await db.query(
+      'SELECT SUM(amount) as total FROM babysitter_payments WHERE babysitter_id = ? AND status = "pending"',
+      [req.params.id]
+    );
+
+    const [completed] = await db.query(
+      'SELECT SUM(amount) as total FROM babysitter_payments WHERE babysitter_id = ? AND status = "completed"',
+      [req.params.id]
+    );
+
+    res.json({
+      pending: pending[0].total || 0,
+      completed: completed[0].total || 0,
+    });
+  } catch (error) {
+    console.error("Error fetching payments summary:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get today's schedule for a babysitter
+router.get("/:id/schedule/today", auth, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const [schedule] = await db.query(
+      'SELECT * FROM babysitter_schedules WHERE babysitter_id = ? AND date = ? AND status != "rejected"',
+      [req.params.id, today]
+    );
+    res.json(schedule);
+  } catch (error) {
+    console.error("Error fetching today's schedule:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get all schedules for a specific babysitter
+router.get("/:id/schedules", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [schedules] = await db.query(
+      `SELECT 
+        id,
+        date,
+        start_time,
+        end_time,
+        session_type,
+        status
+      FROM babysitter_schedules 
+      WHERE babysitter_id = ? 
+      ORDER BY date DESC`,
+      [id]
+    );
+
+    res.json(schedules);
+  } catch (error) {
+    console.error("Error fetching babysitter schedules:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get all payments for a specific babysitter
+router.get("/:id/payments", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [payments] = await db.query(
+      `SELECT 
+        id,
+        date,
+        session_type,
+        children_count,
+        amount,
+        status
+      FROM babysitter_payments 
+      WHERE babysitter_id = ? 
+      ORDER BY date DESC`,
+      [id]
+    );
+
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching babysitter payments:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

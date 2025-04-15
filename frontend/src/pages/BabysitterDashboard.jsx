@@ -1,84 +1,110 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import {
   FaChild,
-  FaClock,
   FaMoneyBillWave,
-  FaClipboardList,
-  FaExclamationTriangle,
-  FaUtensils,
-  FaBed,
+  FaCheckCircle,
+  FaCalendarAlt,
 } from "react-icons/fa";
+import axios from "axios";
 
 const BabysitterDashboard = () => {
-  const stats = [
+  const [stats, setStats] = useState([
     {
-      name: "Children Under Care",
-      value: "5",
+      name: "Assigned Children",
+      value: "0",
       icon: FaChild,
       color: "text-blue-500",
     },
     {
-      name: "Today's Hours",
-      value: "8",
-      icon: FaClock,
-      color: "text-green-500",
-    },
-    {
-      name: "Today's Earnings",
-      value: "UGX 40,000",
+      name: "Pending Payments",
+      value: "UGX 0",
       icon: FaMoneyBillWave,
       color: "text-yellow-500",
     },
     {
-      name: "Monthly Earnings",
-      value: "UGX 800,000",
-      icon: FaMoneyBillWave,
-      color: "text-purple-500",
+      name: "Resolved Payments",
+      value: "UGX 0",
+      icon: FaCheckCircle,
+      color: "text-green-500",
     },
-  ];
+  ]);
 
-  const quickActions = [
-    { name: "View My Children", path: "/my-children", icon: FaChild },
-    { name: "Daily Schedule", path: "/my-schedule", icon: FaClock },
-    {
-      name: "Report Incident",
-      path: "/report-incident",
-      icon: FaExclamationTriangle,
-    },
-    { name: "Attendance Log", path: "/attendance", icon: FaClipboardList },
-  ];
+  const [todaySchedule, setTodaySchedule] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const recentActivities = [
-    {
-      id: 1,
-      child: "Sarah Johnson",
-      action: "Checked in",
-      time: "8:00 AM",
-      icon: FaChild,
-    },
-    {
-      id: 2,
-      child: "Michael Brown",
-      action: "Lunch served",
-      time: "12:30 PM",
-      icon: FaUtensils,
-    },
-    {
-      id: 3,
-      child: "Emma Wilson",
-      action: "Nap time",
-      time: "2:00 PM",
-      icon: FaBed,
-    },
-    {
-      id: 4,
-      child: "James Davis",
-      action: "Checked out",
-      time: "4:30 PM",
-      icon: FaChild,
-    },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Get babysitter ID from token or user info
+        const userResponse = await axios.get(
+          "http://localhost:5000/api/auth/me",
+          { headers }
+        );
+        const babysitterId = userResponse.data.id;
+
+        // Fetch all required data
+        const [childrenCountResponse, paymentsResponse, scheduleResponse] =
+          await Promise.all([
+            axios.get(
+              `http://localhost:5000/api/babysitters/${babysitterId}/children/count`,
+              { headers }
+            ),
+            axios.get(
+              `http://localhost:5000/api/babysitters/${babysitterId}/payments/summary`,
+              { headers }
+            ),
+            axios.get(
+              `http://localhost:5000/api/babysitters/${babysitterId}/schedule/today`,
+              { headers }
+            ),
+          ]);
+
+        setStats([
+          {
+            name: "Assigned Children",
+            value: childrenCountResponse.data.count.toString(),
+            icon: FaChild,
+            color: "text-blue-500",
+          },
+          {
+            name: "Pending Payments",
+            value: `UGX ${parseFloat(
+              paymentsResponse.data.pending
+            ).toLocaleString()}`,
+            icon: FaMoneyBillWave,
+            color: "text-yellow-500",
+          },
+          {
+            name: "Resolved Payments",
+            value: `UGX ${parseFloat(
+              paymentsResponse.data.completed
+            ).toLocaleString()}`,
+            icon: FaCheckCircle,
+            color: "text-green-500",
+          },
+        ]);
+
+        setTodaySchedule(scheduleResponse.data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
@@ -90,7 +116,7 @@ const BabysitterDashboard = () => {
 
       {/* Stats */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {stats.map((item) => (
             <div
               key={item.name}
@@ -118,68 +144,40 @@ const BabysitterDashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => (
-            <Link
-              key={action.name}
-              to={action.path}
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
-            >
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <action.icon className="h-6 w-6 text-indigo-500" />
-                  </div>
-                  <div className="ml-5">
-                    <p className="text-sm font-medium text-gray-900">
-                      {action.name}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activities */}
+      {/* Today's Schedule */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Today's Activities
+              Today's Schedule
             </h3>
           </div>
           <div className="border-t border-gray-200">
-            <ul className="divide-y divide-gray-200">
-              {recentActivities.map((activity) => (
-                <li key={activity.id} className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
+            {todaySchedule.length > 0 ? (
+              <ul className="divide-y divide-gray-200">
+                {todaySchedule.map((schedule) => (
+                  <li key={schedule.id} className="px-4 py-4 sm:px-6">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <activity.icon className="h-5 w-5 text-indigo-500" />
+                        <FaCalendarAlt className="h-5 w-5 text-indigo-500" />
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-indigo-600 truncate">
-                          {activity.child}
+                        <p className="text-sm font-medium text-gray-900">
+                          {schedule.session_type} Session
                         </p>
                         <p className="text-sm text-gray-500">
-                          {activity.action}
+                          {schedule.start_time} - {schedule.end_time}
                         </p>
                       </div>
                     </div>
-                    <div className="ml-2 flex-shrink-0">
-                      <p className="text-sm text-gray-500">{activity.time}</p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="px-4 py-5 sm:px-6">
+                <p className="text-sm text-gray-500">No schedule for today</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
