@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS babysitter_payments (
 
 select * from babysitters;
 SELECT * FROM babysitter_payments;
-
+use daystar_daycare;
 -- Create budgets table
 CREATE TABLE IF NOT EXISTS budgets (
     id INT AUTO_INCREMENT PRIMARY KEY,
