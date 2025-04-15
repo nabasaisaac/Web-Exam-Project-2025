@@ -6,6 +6,8 @@ const FinancialTransaction = require("../models/FinancialTransaction");
 const Child = require("../models/Child");
 const Babysitter = require("../models/Babysitter");
 const db = require("../config/database");
+const PDFDocument = require("pdfkit");
+const csv = require("csv-writer").createObjectCsvWriter;
 
 // Get all financial transactions
 router.get("/transactions", auth, async (req, res) => {
@@ -628,6 +630,136 @@ router.get("/budgets/status", auth, async (req, res) => {
   } catch (error) {
     console.error("Error fetching budget status:", error);
     res.status(500).json({ error: "Failed to fetch budget status" });
+  }
+});
+
+// Export financial reports
+router.get("/export", [auth, authorize("manager")], async (req, res) => {
+  try {
+    const { format, timeRange } = req.query;
+    let dateFilter = "";
+
+    // Set date filter based on timeRange
+    switch (timeRange) {
+      case "day":
+        dateFilter = "AND DATE(date) = CURDATE()";
+        break;
+      case "week":
+        dateFilter = "AND YEARWEEK(date) = YEARWEEK(CURDATE())";
+        break;
+      case "month":
+        dateFilter =
+          "AND YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+        break;
+      case "year":
+        dateFilter = "AND YEAR(date) = YEAR(CURDATE())";
+        break;
+    }
+
+    // Get transactions and babysitter payments
+    const [transactions] = await db.query(`
+      SELECT 
+        ft.*,
+        u.username as created_by_name
+      FROM financial_transactions ft
+      LEFT JOIN users u ON ft.created_by = u.id
+      WHERE 1=1 ${dateFilter}
+      ORDER BY ft.date DESC
+    `);
+
+    const [babysitterPayments] = await db.query(`
+      SELECT 
+        bp.*,
+        b.first_name,
+        b.last_name
+      FROM babysitter_payments bp
+      JOIN babysitters b ON bp.babysitter_id = b.id
+      WHERE bp.status = 'completed'
+      ${dateFilter}
+      ORDER BY bp.date DESC
+    `);
+
+    // Combine and format the data
+    const reportData = [
+      ...transactions.map((t) => ({
+        date: t.date,
+        type: t.type,
+        category: t.category,
+        amount: t.amount,
+        description: t.description,
+        created_by: t.created_by_name,
+      })),
+      ...babysitterPayments.map((p) => ({
+        date: p.date,
+        type: "expense",
+        category: "Babysitter Salaries",
+        amount: p.amount,
+        description: `Payment to ${p.first_name} ${p.last_name}`,
+        created_by: "System",
+      })),
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (format === "pdf") {
+      // Create PDF
+      const doc = new PDFDocument();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=financial_report_${timeRange}.pdf`
+      );
+      doc.pipe(res);
+
+      // Add title
+      doc.fontSize(20).text("Financial Report", { align: "center" });
+      doc.moveDown();
+      doc.fontSize(12).text(`Time Range: ${timeRange}`, { align: "center" });
+      doc.moveDown();
+
+      // Add transactions
+      doc.fontSize(14).text("Transactions");
+      doc.moveDown();
+      reportData.forEach((transaction) => {
+        doc
+          .fontSize(10)
+          .text(
+            `${new Date(transaction.date).toLocaleDateString()} - ${
+              transaction.category
+            }`,
+            { continued: true }
+          )
+          .text(
+            ` ${transaction.type === "income" ? "+" : "-"}${
+              transaction.amount
+            }`,
+            { align: "right" }
+          );
+        doc.fontSize(8).text(transaction.description);
+        doc.moveDown();
+      });
+
+      doc.end();
+    } else if (format === "csv") {
+      // Create CSV
+      const csvWriter = csv({
+        path: "financial_report.csv",
+        header: [
+          { id: "date", title: "Date" },
+          { id: "type", title: "Type" },
+          { id: "category", title: "Category" },
+          { id: "amount", title: "Amount" },
+          { id: "description", title: "Description" },
+          { id: "created_by", title: "Created By" },
+        ],
+      });
+
+      await csvWriter.writeRecords(reportData);
+      res.download("financial_report.csv");
+    } else {
+      res.status(400).json({ error: "Invalid format specified" });
+    }
+  } catch (error) {
+    console.error("Error exporting report:", error);
+    res.status(500).json({ error: "Failed to export report" });
   }
 });
 

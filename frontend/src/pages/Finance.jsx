@@ -685,31 +685,67 @@ const Finance = () => {
           <h2 className="text-lg font-medium text-gray-900">
             Financial Reports
           </h2>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <FaFileExport className="mr-2" /> Export Report
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => handleExport("pdf")}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <FaFileExport className="mr-2" /> Export PDF
+            </button>
+            <button
+              onClick={() => handleExport("csv")}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <FaFileExport className="mr-2" /> Export CSV
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-4">
-              Daily Summary
-            </h3>
-            <div className="space-y-4">
+          {/* Daily Summary Card */}
+          <div className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Daily Summary
+              </h3>
+              <div className="flex items-center space-x-2">
+                <FaCalendarAlt className="text-gray-400" />
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="day">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
               {reportsData.transactions.map((transaction, index) => (
                 <div
                   key={`${transaction.id}-${index}`}
-                  className="flex justify-between items-center"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {transaction.description}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </p>
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        transaction.type === "income"
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {transaction.category}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                   <span
-                    className={`text-sm font-medium ${
+                    className={`text-sm font-semibold ${
                       transaction.type === "income"
                         ? "text-green-600"
                         : "text-red-600"
@@ -722,28 +758,57 @@ const Finance = () => {
               ))}
             </div>
           </div>
-          <div className="bg-white border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-4">
-              Budget Adherence
-            </h3>
+
+          {/* Budget Adherence Card */}
+          <div className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Budget Adherence
+              </h3>
+              <div className="flex items-center space-x-2">
+                <FaChartLine className="text-gray-400" />
+                <span className="text-sm text-gray-500">Current Period</span>
+              </div>
+            </div>
             <div className="space-y-4">
               {reportsData.budgetAdherence.map((budget, index) => (
                 <div
                   key={`${budget.category}-${index}`}
-                  className="flex justify-between items-center"
+                  className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                 >
-                  <span className="text-sm text-gray-900">
-                    {budget.category}
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${
-                      budget.status === "exceeded"
-                        ? "text-red-600"
-                        : "text-green-600"
-                    }`}
-                  >
-                    {formatCurrency(budget.actualSpending - budget.budget)}
-                  </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {budget.category}
+                    </span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        budget.status === "exceeded"
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {formatCurrency(budget.actualSpending - budget.budget)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${
+                        budget.status === "exceeded"
+                          ? "bg-red-500"
+                          : "bg-green-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(
+                          (budget.actualSpending / budget.budget) * 100,
+                          100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Spent: {formatCurrency(budget.actualSpending)}</span>
+                    <span>Budget: {formatCurrency(budget.budget)}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -751,6 +816,31 @@ const Finance = () => {
         </div>
       </div>
     );
+  };
+
+  // Add handleExport function
+  const handleExport = async (format) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/financial/export?format=${format}&timeRange=${timeRange}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `financial_report_${timeRange}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Error exporting report:", error);
+    }
   };
 
   return (
