@@ -545,4 +545,83 @@ router.get("/expenses/total", auth, async (req, res) => {
   }
 });
 
+// Get budget data with actual spending
+router.get("/budgets/status", auth, async (req, res) => {
+  try {
+    const { timeRange } = req.query;
+    let dateFilter = "";
+
+    if (timeRange) {
+      switch (timeRange) {
+        case "week":
+          dateFilter = "AND YEARWEEK(date) = YEARWEEK(CURDATE())";
+          break;
+        case "month":
+          dateFilter =
+            "AND YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          break;
+        case "year":
+          dateFilter = "AND YEAR(date) = YEAR(CURDATE())";
+          break;
+      }
+    }
+
+    // Get all budgets
+    const [budgets] = await db.query(`
+      SELECT category, amount 
+      FROM budgets 
+      WHERE period_type = 'monthly' 
+      AND start_date <= CURDATE() 
+      AND (end_date IS NULL OR end_date >= CURDATE())
+    `);
+
+    // Get babysitter payments
+    const [babysitterPayments] = await db.query(`
+      SELECT SUM(amount) as total_amount 
+      FROM babysitter_payments 
+      WHERE status = 'completed'
+      ${dateFilter}
+    `);
+
+    // Get other expenses grouped by category
+    const [otherExpenses] = await db.query(`
+      SELECT 
+        category,
+        SUM(amount) as total_amount
+      FROM financial_transactions
+      WHERE type = 'expense'
+      AND category != 'Babysitter Salaries'
+      ${dateFilter}
+      GROUP BY category
+    `);
+
+    // Combine the data
+    const budgetData = budgets.map((budget) => {
+      let actualSpending = 0;
+
+      // For babysitter salaries, use the payments table
+      if (budget.category === "Babysitter Salaries") {
+        actualSpending = Number(babysitterPayments[0]?.total_amount || 0);
+      } else {
+        // For other categories, use the expenses table
+        const expense = otherExpenses.find(
+          (e) => e.category === budget.category
+        );
+        actualSpending = Number(expense?.total_amount || 0);
+      }
+
+      return {
+        category: budget.category,
+        budget: budget.amount,
+        actualSpending: actualSpending,
+      };
+    });
+
+    res.json(budgetData);
+  } catch (error) {
+    console.error("Error fetching budget status:", error);
+    res.status(500).json({ error: "Failed to fetch budget status" });
+  }
+});
+
 module.exports = router;
