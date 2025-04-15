@@ -458,6 +458,66 @@ const Finance = () => {
     fetchReportsData();
   }, []);
 
+  // Add this function to fetch babysitter payments
+  const fetchBabysitterPayments = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/financial/babysitter-payments?timeRange=${timeRange}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching babysitter payments:", error);
+      return [];
+    }
+  };
+
+  // Update the useEffect for fetching financial data
+  useEffect(() => {
+    const fetchFinancialData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [transactionsRes, babysitterPayments] = await Promise.all([
+          axios.get(
+            `http://localhost:5000/api/financial/transactions?timeRange=${timeRange}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+          fetchBabysitterPayments(),
+        ]);
+
+        // Combine transactions and babysitter payments
+        const allTransactions = [
+          ...transactionsRes.data,
+          ...babysitterPayments.map((payment) => ({
+            ...payment,
+            type: "expense",
+            category: "Babysitter Salaries",
+            description: `Payment to ${payment.first_name} ${payment.last_name}`,
+            created_by: "System",
+          })),
+        ];
+
+        setReportsData({
+          ...reportsData,
+          transactions: allTransactions,
+        });
+      } catch (error) {
+        console.error("Error fetching financial data:", error);
+      }
+    };
+
+    fetchFinancialData();
+  }, [timeRange]);
+
   // Update the formatCurrency function to handle NaN and undefined better
   const formatCurrency = (amount) => {
     if (isNaN(amount) || amount === undefined || amount === null) {
@@ -724,7 +784,9 @@ const Finance = () => {
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
               {reportsData.transactions.map((transaction, index) => (
                 <div
-                  key={`${transaction.id}-${index}`}
+                  key={`${
+                    transaction.id || transaction.babysitter_id
+                  }-${index}`}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                 >
                   <div className="flex items-center space-x-3">
@@ -875,21 +937,19 @@ const Finance = () => {
         {/* Tabs */}
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
-            {["overview", "income", "expenses", "budgets", "reports"].map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`${
-                    activeTab === tab
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
-                >
-                  {tab}
-                </button>
-              )
-            )}
+            {["overview", "income", "expenses", "budgets"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`${
+                  activeTab === tab
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
+              >
+                {tab}
+              </button>
+            ))}
           </nav>
         </div>
 
