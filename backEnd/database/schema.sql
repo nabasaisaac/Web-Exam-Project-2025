@@ -170,4 +170,6 @@ CREATE TABLE IF NOT EXISTS budget_tracking (
 USE daystar_daycare;
 SELECT * FROM financial_transactions;
 SELECT * FROM budgets;
+SELECT SUM(amount) from budgets;
+DELETE FROM budgets;
 SELECT * FROM budget_tracking;

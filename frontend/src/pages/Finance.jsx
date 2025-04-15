@@ -59,6 +59,62 @@ const Finance = () => {
   const [incomeTransactionCount, setIncomeTransactionCount] = useState(0);
   const [netIncome, setNetIncome] = useState(0);
   const [totalBudget, setTotalBudget] = useState(0);
+  const [chartDataState, setChartDataState] = useState({
+    labels: [],
+    income: [],
+    expenses: [],
+  });
+
+  // Add static financial data
+  const financialData = {
+    overview: {
+      totalIncome: 2400000,
+      totalExpenses: 1800000,
+      netIncome: 600000,
+      monthlyBudget: 2000000,
+    },
+    incomeSources: [
+      { category: "Full-day Sessions", amount: 1500000, target: 2000000 },
+      { category: "Half-day Sessions", amount: 900000, target: 1000000 },
+    ],
+    expenses: [
+      { category: "Babysitter Salaries", amount: 800000, budget: 1000000 },
+      { category: "Toys & Materials", amount: 300000, budget: 400000 },
+      { category: "Maintenance", amount: 400000, budget: 500000 },
+      { category: "Utilities", amount: 300000, budget: 400000 },
+    ],
+    transactions: [
+      {
+        id: 1,
+        type: "income",
+        amount: 50000,
+        description: "Full-day Session - Sarah Johnson",
+        category: "Full-day Sessions",
+        date: "2024-04-01",
+      },
+      {
+        id: 2,
+        type: "expense",
+        amount: 150000,
+        description: "Babysitter salary - Jane Doe",
+        category: "Babysitter Salaries",
+        date: "2024-04-01",
+      },
+      {
+        id: 3,
+        type: "expense",
+        amount: 75000,
+        description: "Educational materials",
+        category: "Toys & Materials",
+        date: "2024-04-02",
+      },
+    ],
+    spendingTrends: {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      income: [1800000, 2000000, 2200000, 2400000, 2600000, 2800000],
+      expenses: [1500000, 1600000, 1700000, 1800000, 1900000, 2000000],
+    },
+  };
 
   // Add this useEffect to fetch budgets
   useEffect(() => {
@@ -148,7 +204,7 @@ const Finance = () => {
     fetchFilteredExpenses();
   }, [timeRange]); // This will run whenever timeRange changes
 
-  // Add this useEffect to fetch filtered income
+  // Update the useEffect for filtered income and expenses to update the static data
   useEffect(() => {
     const fetchFilteredIncome = async () => {
       try {
@@ -172,21 +228,45 @@ const Finance = () => {
           ),
         ]);
 
-        setTotalIncome(incomeResponse.data.totalIncome);
-        setIncomeTransactionCount(incomeResponse.data.transactionCount);
-        setTotalExpenses(expensesResponse.data.totalExpenses);
-        setNetIncome(
-          incomeResponse.data.totalIncome - expensesResponse.data.totalExpenses
+        // Calculate total income from the response data
+        const totalIncome = incomeResponse.data.data.reduce(
+          (sum, item) => sum + (Number(item.total_income) || 0),
+          0
         );
+        const transactionCount = incomeResponse.data.data.reduce(
+          (sum, item) => sum + (Number(item.transaction_count) || 0),
+          0
+        );
+
+        // Calculate total expenses from the response data
+        const totalExpenses = expensesResponse.data.expenses.reduce(
+          (sum, item) => sum + (Number(item.total_amount) || 0),
+          0
+        );
+
+        // Update the static data with real values
+        financialData.overview.totalIncome = totalIncome;
+        financialData.overview.totalExpenses = totalExpenses;
+        financialData.overview.netIncome = totalIncome - totalExpenses;
+
+        setTotalIncome(totalIncome);
+        setIncomeTransactionCount(transactionCount);
+        setTotalExpenses(totalExpenses);
+        setNetIncome(totalIncome - totalExpenses);
       } catch (error) {
         console.error("Error fetching financial data:", error);
+        // Reset values on error
+        setTotalIncome(0);
+        setIncomeTransactionCount(0);
+        setTotalExpenses(0);
+        setNetIncome(0);
       }
     };
 
     fetchFilteredIncome();
   }, [timeRange]);
 
-  // Add this useEffect to fetch total budget
+  // Update the useEffect for total budget to handle data properly
   useEffect(() => {
     const fetchTotalBudget = async () => {
       try {
@@ -199,107 +279,192 @@ const Finance = () => {
             },
           }
         );
-        setTotalBudget(response.data.totalBudget);
+        setTotalBudget(Number(response.data.totalBudget) || 0);
       } catch (error) {
         console.error("Error fetching total budget:", error);
+        setTotalBudget(0);
       }
     };
 
     fetchTotalBudget();
   }, []);
 
-  // Sample data - to be replaced with actual API calls
-  const financialData = {
-    overview: {
-      totalIncome: 2400000,
-      totalExpenses: 1800000,
-      netIncome: 600000,
-      monthlyBudget: 2000000,
-    },
-    incomeSources: [
-      { category: "Full-day Sessions", amount: 1500000, target: 2000000 },
-      { category: "Half-day Sessions", amount: 900000, target: 1000000 },
-    ],
-    expenses: [
-      { category: "Babysitter Salaries", amount: 800000, budget: 1000000 },
-      { category: "Toys & Materials", amount: 300000, budget: 400000 },
-      { category: "Maintenance", amount: 400000, budget: 500000 },
-      { category: "Utilities", amount: 300000, budget: 400000 },
-    ],
-    transactions: [
-      {
-        id: 1,
-        type: "income",
-        amount: 50000,
-        description: "Full-day Session - Sarah Johnson",
-        category: "Full-day Sessions",
-        date: "2024-04-01",
-      },
-      {
-        id: 2,
-        type: "expense",
-        amount: 150000,
-        description: "Babysitter salary - Jane Doe",
-        category: "Babysitter Salaries",
-        date: "2024-04-01",
-      },
-      {
-        id: 3,
-        type: "expense",
-        amount: 75000,
-        description: "Educational materials",
-        category: "Toys & Materials",
-        date: "2024-04-02",
-      },
-    ],
-    spendingTrends: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      income: [1800000, 2000000, 2200000, 2400000, 2600000, 2800000],
-      expenses: [1500000, 1600000, 1700000, 1800000, 1900000, 2000000],
-    },
-  };
+  // Update the useEffect for chart data
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [incomeResponse, expensesResponse] = await Promise.all([
+          axios.get(
+            `http://localhost:5000/api/financial/income/filtered?timeRange=${timeRange}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+          axios.get(
+            `http://localhost:5000/api/financial/expenses/filtered?timeRange=${timeRange}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+        ]);
 
+        // Generate labels based on timeRange
+        let labels = [];
+        const today = new Date();
+        switch (timeRange) {
+          case "day":
+            labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            break;
+          case "week":
+            labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            break;
+          case "month":
+            const daysInMonth = new Date(
+              today.getFullYear(),
+              today.getMonth() + 1,
+              0
+            ).getDate();
+            labels = Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`);
+            break;
+          case "year":
+            labels = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
+            break;
+          default:
+            labels = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
+        }
+
+        // Process income data
+        const incomeData = new Array(labels.length).fill(0);
+        incomeResponse.data.data.forEach((item) => {
+          const index =
+            timeRange === "week" ? item.period - 1 : item.period - 1;
+          if (index >= 0 && index < incomeData.length) {
+            incomeData[index] = Number(item.total_income) || 0;
+          }
+        });
+
+        // Process expenses data
+        const expensesData = new Array(labels.length).fill(0);
+        expensesResponse.data.expenses.forEach((item) => {
+          const index =
+            timeRange === "week" ? item.period - 1 : item.period - 1;
+          if (index >= 0 && index < expensesData.length) {
+            expensesData[index] = Number(item.total_amount) || 0;
+          }
+        });
+
+        setChartDataState({
+          labels,
+          income: incomeData,
+          expenses: expensesData,
+        });
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+        setChartDataState({
+          labels: [],
+          income: [0],
+          expenses: [0],
+        });
+      }
+    };
+
+    fetchChartData();
+  }, [timeRange]);
+
+  // Update the formatCurrency function to handle NaN and undefined better
   const formatCurrency = (amount) => {
-    if (amount >= 1000000) {
+    if (isNaN(amount) || amount === undefined || amount === null) {
+      return new Intl.NumberFormat("en-UG", {
+        style: "currency",
+        currency: "UGX",
+        maximumFractionDigits: 0,
+      }).format(0);
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount)) {
+      return new Intl.NumberFormat("en-UG", {
+        style: "currency",
+        currency: "UGX",
+        maximumFractionDigits: 0,
+      }).format(0);
+    }
+
+    if (numAmount >= 1000000) {
       return new Intl.NumberFormat("en-UG", {
         style: "currency",
         currency: "UGX",
         notation: "compact",
         compactDisplay: "short",
         maximumFractionDigits: 1,
-      }).format(amount);
+      }).format(numAmount);
     }
     return new Intl.NumberFormat("en-UG", {
       style: "currency",
       currency: "UGX",
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const calculateProgress = (current, target) => {
     return Math.min((current / target) * 100, 100);
   };
 
-  const chartData = {
-    labels: financialData.spendingTrends.labels,
+  // Update the chart data object
+  const chartDataConfig = {
+    labels: chartDataState.labels,
     datasets: [
       {
         label: "Income",
-        data: financialData.spendingTrends.income,
+        data: chartDataState.income,
         borderColor: "rgb(99, 102, 241)",
         backgroundColor: "rgba(99, 102, 241, 0.5)",
         tension: 0.1,
+        fill: false,
       },
       {
         label: "Expenses",
-        data: financialData.spendingTrends.expenses,
+        data: chartDataState.expenses,
         borderColor: "rgb(239, 68, 68)",
         backgroundColor: "rgba(239, 68, 68, 0.5)",
         tension: 0.1,
+        fill: false,
       },
     ],
   };
 
+  // Update chart options to show proper tooltips
   const chartOptions = {
     responsive: true,
     plugins: {
@@ -308,7 +473,26 @@ const Finance = () => {
       },
       title: {
         display: true,
-        text: "Financial Trends",
+        text: `Financial Trends - ${
+          timeRange.charAt(0).toUpperCase() + timeRange.slice(1)
+        }`,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function (value) {
+            return formatCurrency(value);
+          },
+        },
       },
     },
   };
@@ -515,7 +699,7 @@ const Finance = () => {
 
               {/* Chart */}
               <div className="mt-8">
-                <Line data={chartData} options={chartOptions} />
+                <Line data={chartDataConfig} options={chartOptions} />
               </div>
             </div>
           )}

@@ -364,7 +364,7 @@ router.get(
   }
 );
 
-// Get filtered expenses
+// Get filtered expenses with historical data
 router.get(
   "/expenses/filtered",
   [auth, authorize("manager")],
@@ -372,52 +372,47 @@ router.get(
     try {
       const { timeRange } = req.query;
       let dateFilter = "";
-      let params = [];
+      let groupBy = "";
 
-      // Set date range based on timeRange parameter
-      const today = new Date();
       switch (timeRange) {
         case "day":
           dateFilter = "DATE(date) = CURDATE()";
+          groupBy = "HOUR(date)";
           break;
         case "week":
           dateFilter = "YEARWEEK(date) = YEARWEEK(CURDATE())";
+          groupBy = "DAYOFWEEK(date)";
           break;
         case "month":
           dateFilter =
             "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          groupBy = "DAY(date)";
           break;
         case "year":
           dateFilter = "YEAR(date) = YEAR(CURDATE())";
+          groupBy = "MONTH(date)";
           break;
         default:
           dateFilter =
             "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          groupBy = "DAY(date)";
       }
 
       const query = `
       SELECT 
-        category,
-        SUM(amount) as total_amount,
-        COUNT(*) as transaction_count
+        ${groupBy} as period,
+        COALESCE(SUM(amount), 0) as total_amount,
+        COALESCE(COUNT(*), 0) as transaction_count
       FROM financial_transactions
       WHERE type = 'expense'
       AND ${dateFilter}
-      GROUP BY category
-      ORDER BY total_amount DESC
+      GROUP BY ${groupBy}
+      ORDER BY period
     `;
 
-      const [expenses] = await db.query(query, params);
-
-      // Calculate total expenses
-      const totalExpenses = expenses.reduce(
-        (sum, expense) => sum + expense.total_amount,
-        0
-      );
-
+      const [result] = await db.query(query);
       res.json({
-        expenses,
-        totalExpenses,
+        expenses: result,
         timeRange,
       });
     } catch (error) {
@@ -430,7 +425,7 @@ router.get(
   }
 );
 
-// Get filtered income
+// Get filtered income with historical data
 router.get(
   "/income/filtered",
   [auth, authorize("manager")],
@@ -438,43 +433,47 @@ router.get(
     try {
       const { timeRange } = req.query;
       let dateFilter = "";
-      let params = [];
+      let groupBy = "";
 
-      // Set date range based on timeRange parameter
-      const today = new Date();
       switch (timeRange) {
         case "day":
           dateFilter = "DATE(date) = CURDATE()";
+          groupBy = "HOUR(date)";
           break;
         case "week":
           dateFilter = "YEARWEEK(date) = YEARWEEK(CURDATE())";
+          groupBy = "DAYOFWEEK(date)";
           break;
         case "month":
           dateFilter =
             "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          groupBy = "DAY(date)";
           break;
         case "year":
           dateFilter = "YEAR(date) = YEAR(CURDATE())";
+          groupBy = "MONTH(date)";
           break;
         default:
           dateFilter =
             "YEAR(date) = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE())";
+          groupBy = "DAY(date)";
       }
 
       const query = `
       SELECT 
-        SUM(amount) as total_income,
-        COUNT(*) as transaction_count
+        ${groupBy} as period,
+        COALESCE(SUM(amount), 0) as total_income,
+        COALESCE(COUNT(*), 0) as transaction_count
       FROM financial_transactions
       WHERE type = 'income'
       AND ${dateFilter}
+      GROUP BY ${groupBy}
+      ORDER BY period
     `;
 
-      const [result] = await db.query(query, params);
-
+      const [result] = await db.query(query);
       res.json({
-        totalIncome: result[0].total_income || 0,
-        transactionCount: result[0].transaction_count || 0,
+        data: result,
         timeRange,
       });
     } catch (error) {
@@ -499,7 +498,7 @@ router.get("/budgets/total", [auth, authorize("manager")], async (req, res) => {
     `;
 
     const [result] = await db.query(query);
-    res.json({ totalBudget: result[0].total_budget });
+    res.json({ totalBudget: Number(result[0].total_budget) || 0 });
   } catch (error) {
     console.error("Error fetching total budget:", error);
     res.status(500).json({
