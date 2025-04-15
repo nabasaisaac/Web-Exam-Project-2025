@@ -598,6 +598,7 @@ router.get("/budgets/status", auth, async (req, res) => {
     // Combine the data
     const budgetData = budgets.map((budget) => {
       let actualSpending = 0;
+      let status = "normal";
 
       // For babysitter salaries, use the payments table
       if (budget.category === "Babysitter Salaries") {
@@ -610,10 +611,16 @@ router.get("/budgets/status", auth, async (req, res) => {
         actualSpending = Number(expense?.total_amount || 0);
       }
 
+      // Check if spending exceeds budget
+      if (budget.amount && actualSpending > budget.amount) {
+        status = "exceeded";
+      }
+
       return {
         category: budget.category,
         budget: budget.amount,
         actualSpending: actualSpending,
+        status: status,
       };
     });
 

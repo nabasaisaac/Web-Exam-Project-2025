@@ -45,11 +45,7 @@ const Finance = () => {
     date: new Date().toISOString().split("T")[0],
   });
 
-  const [budgetData, setBudgetData] = useState({
-    category: "",
-    amount: "",
-    period: "monthly",
-  });
+  const [budgetData, setBudgetData] = useState([]);
 
   const [budgets, setBudgets] = useState([]);
   const [budgetTracking, setBudgetTracking] = useState([]);
@@ -64,6 +60,11 @@ const Finance = () => {
     labels: [],
     income: [],
     expenses: [],
+  });
+
+  const [reportsData, setReportsData] = useState({
+    transactions: [],
+    budgetAdherence: [],
   });
 
   // Add static financial data
@@ -408,6 +409,55 @@ const Finance = () => {
     fetchChartData();
   }, [timeRange]);
 
+  // Add this useEffect to fetch budget data
+  useEffect(() => {
+    const fetchBudgetData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://localhost:5000/api/financial/budgets/status?timeRange=${timeRange}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setBudgetData(response.data);
+      } catch (error) {
+        console.error("Error fetching budget data:", error);
+        setBudgetData([]);
+      }
+    };
+
+    fetchBudgetData();
+  }, [timeRange]);
+
+  // Add useEffect to fetch reports data
+  useEffect(() => {
+    const fetchReportsData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [transactionsRes, budgetStatusRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/financial/transactions", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:5000/api/financial/budgets/status", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setReportsData({
+          transactions: transactionsRes.data,
+          budgetAdherence: budgetStatusRes.data,
+        });
+      } catch (error) {
+        console.error("Error fetching reports data:", error);
+      }
+    };
+
+    fetchReportsData();
+  }, []);
+
   // Update the formatCurrency function to handle NaN and undefined better
   const formatCurrency = (amount) => {
     if (isNaN(amount) || amount === undefined || amount === null) {
@@ -554,6 +604,150 @@ const Finance = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Update the budgets tab content
+  const renderBudgetsTab = () => {
+    return (
+      <div className="p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Budget Management
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {budgetData.map((budget, index) => (
+            <div
+              key={`${budget.category}-${index}`}
+              className={`bg-white border rounded-lg p-4 ${
+                budget.status === "exceeded" ? "border-red-500" : ""
+              }`}
+            >
+              <h3 className="text-sm font-medium text-gray-900">
+                {budget.category}
+              </h3>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Current Budget</span>
+                  <span className="font-medium">
+                    {budget.budget ? formatCurrency(budget.budget) : "Not set"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-500">Actual Spending</span>
+                  <span
+                    className={`font-medium ${
+                      budget.status === "exceeded"
+                        ? "text-red-600"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    {formatCurrency(budget.actualSpending)}
+                  </span>
+                </div>
+                {budget.status === "exceeded" && (
+                  <div className="mt-1 text-xs text-red-600">
+                    Budget exceeded by{" "}
+                    {formatCurrency(budget.actualSpending - budget.budget)}
+                  </div>
+                )}
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className={`h-2.5 rounded-full ${
+                        budget.status === "exceeded"
+                          ? "bg-red-600"
+                          : "bg-indigo-600"
+                      }`}
+                      style={{
+                        width: `${calculateProgress(
+                          budget.actualSpending,
+                          budget.budget || budget.actualSpending
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Update the reports tab content
+  const renderReportsTab = () => {
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-medium text-gray-900">
+            Financial Reports
+          </h2>
+          <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <FaFileExport className="mr-2" /> Export Report
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-4">
+              Daily Summary
+            </h3>
+            <div className="space-y-4">
+              {reportsData.transactions.map((transaction, index) => (
+                <div
+                  key={`${transaction.id}-${index}`}
+                  className="flex justify-between items-center"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {transaction.description}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${
+                      transaction.type === "income"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {transaction.type === "income" ? "+" : "-"}
+                    {formatCurrency(transaction.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white border rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-4">
+              Budget Adherence
+            </h3>
+            <div className="space-y-4">
+              {reportsData.budgetAdherence.map((budget, index) => (
+                <div
+                  key={`${budget.category}-${index}`}
+                  className="flex justify-between items-center"
+                >
+                  <span className="text-sm text-gray-900">
+                    {budget.category}
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${
+                      budget.status === "exceeded"
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {formatCurrency(budget.actualSpending - budget.budget)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -721,125 +915,9 @@ const Finance = () => {
 
           {activeTab === "expenses" && renderExpensesTab()}
 
-          {activeTab === "budgets" && (
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Budget Management
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {financialData.expenses.map((expense, index) => (
-                  <div
-                    key={`${expense.category}-${index}`}
-                    className="bg-white border rounded-lg p-4"
-                  >
-                    <h3 className="text-sm font-medium text-gray-900">
-                      {expense.category}
-                    </h3>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Current Budget</span>
-                        <span className="font-medium">
-                          {formatCurrency(expense.budget)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm mt-1">
-                        <span className="text-gray-500">Actual Spending</span>
-                        <span className="font-medium text-red-600">
-                          {formatCurrency(expense.amount)}
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                          <div
-                            className="bg-indigo-600 h-2.5 rounded-full"
-                            style={{
-                              width: `${calculateProgress(
-                                expense.amount,
-                                expense.budget
-                              )}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === "budgets" && renderBudgetsTab()}
 
-          {activeTab === "reports" && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-medium text-gray-900">
-                  Financial Reports
-                </h2>
-                <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                  <FaFileExport className="mr-2" /> Export Report
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white border rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-4">
-                    Daily Summary
-                  </h3>
-                  <div className="space-y-4">
-                    {financialData.transactions.map((transaction, index) => (
-                      <div
-                        key={`${transaction.id}-${index}`}
-                        className="flex justify-between items-center"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {transaction.description}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {transaction.date}
-                          </p>
-                        </div>
-                        <span
-                          className={`text-sm font-medium ${
-                            transaction.type === "income"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {transaction.type === "income" ? "+" : "-"}
-                          {formatCurrency(transaction.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="bg-white border rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-4">
-                    Budget Adherence
-                  </h3>
-                  <div className="space-y-4">
-                    {financialData.expenses.map((expense, index) => (
-                      <div
-                        key={`${expense.category}-${index}`}
-                        className="flex justify-between items-center"
-                      >
-                        <span className="text-sm text-gray-900">
-                          {expense.category}
-                        </span>
-                        <span
-                          className={`text-sm font-medium ${
-                            expense.amount > expense.budget
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {formatCurrency(expense.amount - expense.budget)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === "reports" && renderReportsTab()}
         </div>
       </div>
 
