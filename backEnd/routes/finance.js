@@ -67,9 +67,9 @@ router.post(
       .custom((value, { req }) => {
         const validIncomeCategories = ["parent-payment"];
         const validExpenseCategories = [
-          "procurement",
-          "maintenance",
-          "utilities",
+          "Procurement of toys and play materials",
+          "Center maintenance and repairs",
+          "Utility bills",
         ];
 
         if (
@@ -94,7 +94,10 @@ router.post(
       .notEmpty()
       .withMessage("Description is required"),
     body("date").isISO8601().withMessage("Valid date is required"),
-    body("child_id").optional().isInt(),
+    body("child_id")
+      .optional({ nullable: true })
+      .isInt()
+      .withMessage("Child ID must be an integer"),
   ],
   async (req, res) => {
     try {

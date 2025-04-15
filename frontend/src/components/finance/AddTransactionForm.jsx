@@ -189,13 +189,13 @@ const AddTransactionForm = ({ onClose, onTransactionAdded }) => {
                     <option value="parent-payment">Parent Payment</option>
                   ) : (
                     <>
-                      <option value="procurement">
+                      <option value="Procurement of toys and play materials">
                         Procurement of toys and play materials
                       </option>
-                      <option value="maintenance">
+                      <option value="Center maintenance and repairs">
                         Center maintenance and repairs
                       </option>
-                      <option value="utilities">Utility bills</option>
+                      <option value="Utility bills">Utility bills</option>
                     </>
                   )}
                 </select>
