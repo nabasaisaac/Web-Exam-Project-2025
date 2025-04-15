@@ -140,3 +140,28 @@ CREATE TABLE IF NOT EXISTS babysitter_payments (
 
 select * from babysitters;
 SELECT * FROM babysitter_payments;
+use daystar_daycare;
+-- Create budgets table
+CREATE TABLE IF NOT EXISTS budgets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(100) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    period_type ENUM('monthly', 'weekly') NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT unique_category_period UNIQUE (category, period_type, start_date)
+);
+
+-- Create budget tracking table
+CREATE TABLE IF NOT EXISTS budget_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    budget_id INT NOT NULL,
+    actual_amount DECIMAL(10, 2) NOT NULL,
+    tracking_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (budget_id) REFERENCES budgets(id)
+);

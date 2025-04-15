@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaPlus,
   FaChartLine,
@@ -18,6 +18,8 @@ import {
   Legend,
 } from "chart.js";
 import AddTransactionForm from "../components/finance/AddTransactionForm";
+import AddBudgetForm from "../components/finance/AddBudgetForm";
+import axios from "axios";
 
 ChartJS.register(
   CategoryScale,
@@ -32,7 +34,7 @@ ChartJS.register(
 const Finance = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [showAddBudgetForm, setShowAddBudgetForm] = useState(false);
   const [timeRange, setTimeRange] = useState("month");
   const [transactionType, setTransactionType] = useState("income");
   const [formData, setFormData] = useState({
@@ -47,6 +49,71 @@ const Finance = () => {
     amount: "",
     period: "monthly",
   });
+
+  const [budgets, setBudgets] = useState([]);
+  const [budgetTracking, setBudgetTracking] = useState([]);
+
+  // Add this useEffect to fetch budgets
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/financial/budgets",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setBudgets(response.data);
+      } catch (error) {
+        console.error("Error fetching budgets:", error);
+      }
+    };
+
+    const fetchBudgetTracking = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/financial/budgets/tracking",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setBudgetTracking(response.data);
+      } catch (error) {
+        console.error("Error fetching budget tracking:", error);
+      }
+    };
+
+    fetchBudgets();
+    fetchBudgetTracking();
+  }, []);
+
+  const handleBudgetAdded = () => {
+    // Refresh budgets and tracking data
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const [budgetsRes, trackingRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/financial/budgets", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("http://localhost:5000/api/financial/budgets/tracking", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        setBudgets(budgetsRes.data);
+        setBudgetTracking(trackingRes.data);
+      } catch (error) {
+        console.error("Error refreshing budget data:", error);
+      }
+    };
+    fetchData();
+  };
 
   // Sample data - to be replaced with actual API calls
   const financialData = {
@@ -169,7 +236,7 @@ const Finance = () => {
               <FaPlus className="mr-2" /> Add Transaction
             </button>
             <button
-              onClick={() => setShowBudgetForm(true)}
+              onClick={() => setShowAddBudgetForm(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <FaChartLine className="mr-2" /> Set Budget
@@ -460,85 +527,12 @@ const Finance = () => {
         />
       )}
 
-      {/* Budget Form Modal */}
-      {showBudgetForm && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-lg font-medium mb-4">Set Budget</h2>
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Category
-                </label>
-                <select
-                  name="category"
-                  value={budgetData.category}
-                  onChange={(e) =>
-                    setBudgetData({ ...budgetData, category: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {financialData.expenses.map((expense) => (
-                    <option key={expense.category} value={expense.category}>
-                      {expense.category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={budgetData.amount}
-                  onChange={(e) =>
-                    setBudgetData({ ...budgetData, amount: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Period
-                </label>
-                <select
-                  name="period"
-                  value={budgetData.period}
-                  onChange={(e) =>
-                    setBudgetData({ ...budgetData, period: e.target.value })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  required
-                >
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowBudgetForm(false)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Set Budget
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Add Budget Form Modal */}
+      {showAddBudgetForm && (
+        <AddBudgetForm
+          onClose={() => setShowAddBudgetForm(false)}
+          onBudgetAdded={handleBudgetAdded}
+        />
       )}
     </div>
   );
