@@ -182,13 +182,11 @@ const login = async (req, res) => {
       "SELECT * FROM babysitters WHERE email = ?",
       [email]
     );
-    console.log("Found in babysitters table:", babysitters.length > 0);
 
     // Then check in users table
     const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
       email,
     ]);
-    console.log("Found in users table:", users.length > 0);
 
     let user = null;
     let role = null;

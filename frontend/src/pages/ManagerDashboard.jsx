@@ -23,143 +23,119 @@ const ManagerDashboard = () => {
       color: "text-green-500",
     },
     {
-      name: "Today's Revenue",
+      name: "Total Income",
       value: "UGX 0",
       icon: FaMoneyBillWave,
       color: "text-yellow-500",
     },
     {
-      name: "Monthly Revenue",
+      name: "Total Expenditure",
       value: "UGX 0",
       icon: FaChartLine,
       color: "text-purple-500",
     },
   ]);
 
-  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [recentAlerts, setRecentAlerts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const [
-          childrenRes,
-          babysittersRes,
-          transactionsRes,
-          babysitterPaymentsRes,
-        ] = await Promise.all([
-          axios.get("http://localhost:5000/api/children", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/babysitters", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/financial/transactions", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get("http://localhost:5000/api/babysitters/payments/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const headers = { Authorization: `Bearer ${token}` };
 
-        // Format currency
-        const formatCurrency = (amount) => {
-          return new Intl.NumberFormat("en-UG", {
-            style: "currency",
-            currency: "UGX",
-            maximumFractionDigits: 0,
-          }).format(amount);
-        };
+        // Fetch children, babysitters, and financial transactions
+        const [childrenResponse, babysittersResponse, transactionsResponse] =
+          await Promise.all([
+            axios.get("http://localhost:5000/api/children", { headers }),
+            axios.get("http://localhost:5000/api/babysitters", { headers }),
+            axios.get("http://localhost:5000/api/financial/transactions", {
+              headers,
+            }),
+          ]);
 
-        // Calculate today's and monthly revenue
-        const today = new Date().toISOString().split("T")[0];
-        const thisMonth = new Date().toISOString().slice(0, 7);
+        // Calculate total income and expenditure from transactions
+        const transactions = transactionsResponse.data;
+        const totalIncome = transactions
+          .filter((t) => t.type === "income")
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-        // Calculate revenue from financial transactions
-        const todayRevenue = transactionsRes.data
-          .filter((t) => t.type === "income" && t.date.startsWith(today))
-          .reduce((sum, t) => sum + Number(t.amount), 0);
+        const totalExpenditure = transactions
+          .filter((t) => t.type === "expense")
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-        const monthlyRevenue = transactionsRes.data
-          .filter((t) => t.type === "income" && t.date.startsWith(thisMonth))
-          .reduce((sum, t) => sum + Number(t.amount), 0);
-
-        // Update stats with real data
         setStats([
           {
             name: "Total Children",
-            value: childrenRes.data.length.toString(),
+            value: childrenResponse.data.length.toString(),
             icon: FaChild,
             color: "text-blue-500",
           },
           {
             name: "Active Babysitters",
-            value: babysittersRes.data.length.toString(),
+            value: babysittersResponse.data.length.toString(),
             icon: FaUserNurse,
             color: "text-green-500",
           },
           {
-            name: "Today's Revenue",
-            value: formatCurrency(todayRevenue),
+            name: "Total Income",
+            value: `UGX ${totalIncome.toLocaleString()}`,
             icon: FaMoneyBillWave,
             color: "text-yellow-500",
           },
           {
-            name: "Monthly Revenue",
-            value: formatCurrency(monthlyRevenue),
+            name: "Total Expenditure",
+            value: `UGX ${totalExpenditure.toLocaleString()}`,
             icon: FaChartLine,
             color: "text-purple-500",
           },
         ]);
 
-        // Combine and sort recent transactions and payments
-        const allTransactions = [
-          ...transactionsRes.data.map((t) => ({
-            id: t.id,
-            type: t.type === "income" ? "info" : "warning",
-            message: `${
-              t.type === "income" ? "Income" : "Expense"
-            } of ${formatCurrency(t.amount)} for ${t.category}`,
-            time: new Date(t.date).getTime(),
-            date: t.date,
+        // Fetch recent alerts (incidents and budget warnings)
+        const [incidentsResponse, budgetResponse] = await Promise.all([
+          axios.get("http://localhost:5000/api/incidents", { headers }),
+          axios.get("http://localhost:5000/api/financial/budgets/status", {
+            headers,
+          }),
+        ]);
+
+        // Format alerts
+        const alerts = [
+          ...incidentsResponse.data.slice(0, 2).map((incident) => ({
+            id: incident.id,
+            type: "warning",
+            message: `Incident reported for ${incident.child_name}`,
+            time: new Date(incident.created_at).toLocaleTimeString(),
           })),
-          ...babysitterPaymentsRes.data
-            .filter((p) => p.status === "completed")
-            .map((p) => ({
-              id: p.id,
+          ...budgetResponse.data
+            .filter((budget) => budget.status === "exceeded")
+            .map((budget) => ({
+              id: `budget-${budget.category}`,
               type: "warning",
-              message: `Babysitter payment of ${formatCurrency(p.amount)} to ${
-                p.first_name
-              } ${p.last_name}`,
-              time: new Date(p.date).getTime(),
-              date: p.date,
+              message: `Budget exceeded for ${budget.category}`,
+              time: "Today",
             })),
         ];
 
-        // Sort by date and get the 3 most recent
-        const recent = allTransactions
-          .sort((a, b) => b.time - a.time)
-          .slice(0, 3)
-          .map((t) => {
-            const date = new Date(t.date);
-            return {
-              ...t,
-              time: date.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              }),
-            };
-          });
-
-        setRecentTransactions(recent);
+        setRecentAlerts(alerts.slice(0, 3));
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        setIsLoading(false);
       }
     };
 
     fetchDashboardData();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
@@ -199,23 +175,23 @@ const ManagerDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Alerts */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Recent Transactions
+              Recent Alerts
             </h3>
           </div>
           <div className="border-t border-gray-200">
             <ul className="divide-y divide-gray-200">
-              {recentTransactions.map((transaction) => (
-                <li key={transaction.id} className="px-4 py-4 sm:px-6">
+              {recentAlerts.map((alert) => (
+                <li key={alert.id} className="px-4 py-4 sm:px-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <FaExclamationTriangle
                         className={`h-5 w-5 ${
-                          transaction.type === "warning"
+                          alert.type === "warning"
                             ? "text-yellow-400"
                             : "text-blue-400"
                         }`}
@@ -223,9 +199,9 @@ const ManagerDashboard = () => {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900">
-                        {transaction.message}
+                        {alert.message}
                       </p>
-                      <p className="text-sm text-gray-500">{transaction.time}</p>
+                      <p className="text-sm text-gray-500">{alert.time}</p>
                     </div>
                   </div>
                 </li>
