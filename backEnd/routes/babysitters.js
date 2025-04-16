@@ -404,17 +404,17 @@ router.post("/:id/schedule", [auth, authorize("manager")], async (req, res) => {
       );
 
       // Get children count for the babysitter
-      const [childrenCount] = await db.query(
-        `SELECT COUNT(*) as count 
+    const [childrenCount] = await db.query(
+      `SELECT COUNT(*) as count 
        FROM children 
          WHERE assigned_babysitter_id = ?`,
         [id]
-      );
+    );
 
       const count = childrenCount[0].count || 0;
 
       // Calculate payment amount
-      const rate = sessionType === "full-day" ? 5000 : 2000;
+    const rate = sessionType === "full-day" ? 5000 : 2000;
       const amount = count > 0 ? rate * count : 0;
 
       // Create payment record

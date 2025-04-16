@@ -157,7 +157,7 @@ const Login = () => {
               </span>
               <Link
                 to="/signup"
-                className="text-sm underline font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+                className="text-sm underline font-medium text-purple-600 hover:text-purple-500 focus:outline-none"
               >
                 Sign up
               </Link>

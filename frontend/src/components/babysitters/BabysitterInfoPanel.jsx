@@ -175,7 +175,7 @@ const BabysitterInfoPanel = ({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-indigo-600 focus:outline-none focus:border-[#4299e1] cursor-pointer hover:animate-spin hover:scale-110"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-purple-600 focus:outline-none focus:border-purple-500 cursor-pointer hover:animate-spin hover:scale-110"
           >
             <FaTimes className="text-gray-500" />
           </button>
@@ -188,7 +188,7 @@ const BabysitterInfoPanel = ({
             {/* Left Column - Basic Info and Next of Kin */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <FaUser className="text-indigo-500" />
+                <FaUser className="text-purple-500" />
                 <div>
                   <p className="text-sm text-gray-500">Full Name</p>
                   <p className="font-medium">
@@ -198,7 +198,7 @@ const BabysitterInfoPanel = ({
               </div>
 
               <div className="flex items-center space-x-3">
-                <FaEnvelope className="text-indigo-500" />
+                <FaEnvelope className="text-purple-500" />
                 <div>
                   <p className="text-sm text-gray-500">Email</p>
                   <p className="font-medium">{babysitter.email}</p>
@@ -206,7 +206,7 @@ const BabysitterInfoPanel = ({
               </div>
 
               <div className="flex items-center space-x-3">
-                <FaPhone className="text-indigo-500" />
+                <FaPhone className="text-purple-500" />
                 <div>
                   <p className="text-sm text-gray-500">Phone</p>
                   <p className="font-medium">{babysitter.phone}</p>
@@ -214,7 +214,7 @@ const BabysitterInfoPanel = ({
               </div>
 
               <div className="flex items-center space-x-3">
-                <FaIdCard className="text-indigo-500" />
+                <FaIdCard className="text-purple-500" />
                 <div>
                   <p className="text-sm text-gray-500">NIN</p>
                   <p className="font-medium">{babysitter.nin}</p>
@@ -222,7 +222,7 @@ const BabysitterInfoPanel = ({
               </div>
 
               <div className="flex items-center space-x-3">
-                <FaUserFriends className="text-indigo-500" />
+                <FaUserFriends className="text-purple-500" />
                 <div>
                   <p className="text-sm text-gray-500">Age</p>
                   <p className="font-medium">{babysitter.age}</p>
@@ -236,7 +236,7 @@ const BabysitterInfoPanel = ({
                 </h3>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-3">
-                    <FaUserTie className="text-indigo-500" />
+                    <FaUserTie className="text-purple-500" />
                     <div>
                       <p className="text-sm text-gray-500">Name</p>
                       <p className="font-medium">
@@ -245,7 +245,7 @@ const BabysitterInfoPanel = ({
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <FaPhone className="text-indigo-500" />
+                    <FaPhone className="text-purple-500" />
                     <div>
                       <p className="text-sm text-gray-500">Phone</p>
                       <p className="font-medium">
@@ -266,7 +266,7 @@ const BabysitterInfoPanel = ({
                   </h3>
                   <button
                     onClick={() => setShowAssignForm(!showAssignForm)}
-                    className="text-indigo-600 hover:text-indigo-800 flex items-center"
+                    className="text-purple-600 hover:text-purple-800 flex items-center"
                   >
                     <FaPlus className="mr-1" /> Assign
                   </button>
@@ -281,7 +281,7 @@ const BabysitterInfoPanel = ({
                         placeholder="Search children..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:border-indigo-500"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:border-purple-500"
                       />
                     </div>
                     <div className="mb-4 max-h-40 overflow-y-auto">
@@ -290,7 +290,7 @@ const BabysitterInfoPanel = ({
                           key={child.id}
                           className={`p-2 cursor-pointer rounded-md ${
                             selectedChildren.includes(child.id)
-                              ? "bg-indigo-50 text-indigo-600"
+                              ? "bg-purple-50 text-purple-600"
                               : "hover:bg-gray-50"
                           }`}
                           onClick={() => toggleChildSelection(child.id)}
@@ -323,7 +323,7 @@ const BabysitterInfoPanel = ({
                       </button>
                       <button
                         onClick={handleAssignSubmit}
-                        className="px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                        className="px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
                       >
                         Assign Selected
                       </button>

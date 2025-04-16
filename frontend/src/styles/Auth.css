@@ -1,36 +1,19 @@
 /* Common styles for Login and Signup pages */
 .login-container,
 .signup-container {
-  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.login-container::before,
-.signup-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: white;
 }
 
 .login-content,
 .signup-content {
-  position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.95);
+  background: white;
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   width: 100%;
 }
 
@@ -46,9 +29,8 @@
 
 .login-title,
 .signup-title {
-  color: #1a365d;
+  color: #2d3748;
   font-weight: 800;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .login-subtitle,
@@ -65,20 +47,20 @@
 
 .login-input:focus,
 .signup-input:focus {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  border-color: #6b46c1;
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
   outline: none;
 }
 
 .login-button,
 .signup-button {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  background: linear-gradient(135deg, #6b46c1 0%, #553c9a 100%);
   transition: all 0.2s;
 }
 
 .login-button:hover,
 .signup-button:hover {
-  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  background: linear-gradient(135deg, #553c9a 0%, #44337a 100%);
   transform: translateY(-1px);
 }
 
@@ -98,8 +80,8 @@
 }
 
 .custom-checkbox:checked {
-  background-color: #4f46e5;
-  border-color: #4f46e5;
+  background-color: #6b46c1;
+  border-color: #6b46c1;
 }
 
 .custom-checkbox:checked::after {
@@ -116,7 +98,7 @@
 
 .custom-checkbox:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
 }
 
 .custom-checkbox:disabled {
@@ -137,8 +119,8 @@
 }
 
 .signup-input:focus {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  border-color: #6b46c1;
+  box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
   outline: none;
 }
 
@@ -161,4 +143,3 @@
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
 }
-

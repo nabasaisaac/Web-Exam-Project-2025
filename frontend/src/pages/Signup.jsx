@@ -183,7 +183,7 @@ const Signup = () => {
               {/* Personal Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div className="flex items-center space-x-2 mb-4">
-                  <FaUser className="text-indigo-500 text-xl" />
+                  <FaUser className="text-purple-500 text-xl" />
                   <h3 className="text-lg font-medium text-gray-900">
                     Personal Information
                   </h3>
@@ -335,7 +335,7 @@ const Signup = () => {
               {/* Next of Kin Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div className="flex items-center space-x-2 mb-4">
-                  <FaUserFriends className="text-indigo-500 text-xl" />
+                  <FaUserFriends className="text-purple-500 text-xl" />
                   <h3 className="text-lg font-medium text-gray-900">
                     Next of Kin Information
                   </h3>
@@ -423,7 +423,7 @@ const Signup = () => {
               {/* Security Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
                 <div className="flex items-center space-x-2 mb-4">
-                  <FaLock className="text-indigo-500 text-xl" />
+                  <FaLock className="text-purple-500 text-xl" />
                   <h3 className="text-lg font-medium text-gray-900">
                     Security
                   </h3>
@@ -514,7 +514,7 @@ const Signup = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <button
                   type="submit"
-                  className="signup-button w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  className="signup-button w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 hover:shadow-md cursor-pointer"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -553,7 +553,7 @@ const Signup = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="text-sm underline font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none cursor-pointer"
+                    className="text-sm underline font-medium text-pink-600 hover:text-pink-500 focus:outline-none cursor-pointer"
                     disabled={isLoading}
                   >
                     Sign in

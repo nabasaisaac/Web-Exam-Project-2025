@@ -42,7 +42,7 @@ const UserDropdown = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white cursor-pointer hover:bg-indigo-700 transition-colors"
+        className="flex items-center justify-center w-10 h-10 rounded-full bg-pink-600 text-white cursor-pointer hover:bg-pink-700 transition-colors"
       >
         {initials}
       </button>

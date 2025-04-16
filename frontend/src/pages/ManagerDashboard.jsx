@@ -14,25 +14,25 @@ const ManagerDashboard = () => {
       name: "Total Children",
       value: "0",
       icon: FaChild,
-      color: "text-blue-500",
+      color: "text-purple-600",
     },
     {
       name: "Active Babysitters",
       value: "0",
       icon: FaUserNurse,
-      color: "text-green-500",
+      color: "text-purple-600",
     },
     {
       name: "Total Income",
       value: "UGX 0",
       icon: FaMoneyBillWave,
-      color: "text-yellow-500",
+      color: "text-purple-600",
     },
     {
       name: "Total Expenditure",
       value: "UGX 0",
       icon: FaChartLine,
-      color: "text-purple-500",
+      color: "text-purple-600",
     },
   ]);
 
@@ -70,25 +70,25 @@ const ManagerDashboard = () => {
             name: "Total Children",
             value: childrenResponse.data.length.toString(),
             icon: FaChild,
-            color: "text-blue-500",
+            color: "text-purple-600",
           },
           {
             name: "Active Babysitters",
             value: babysittersResponse.data.length.toString(),
             icon: FaUserNurse,
-            color: "text-green-500",
+            color: "text-purple-600",
           },
           {
             name: "Total Income",
             value: `UGX ${totalIncome.toLocaleString()}`,
             icon: FaMoneyBillWave,
-            color: "text-yellow-500",
+            color: "text-purple-600",
           },
           {
             name: "Total Expenditure",
             value: `UGX ${totalExpenditure.toLocaleString()}`,
             icon: FaChartLine,
-            color: "text-purple-500",
+            color: "text-purple-600",
           },
         ]);
 
@@ -151,7 +151,7 @@ const ManagerDashboard = () => {
           {stats.map((item) => (
             <div
               key={item.name}
-              className="bg-white overflow-hidden shadow rounded-lg"
+              className="bg-white overflow-hidden shadow rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200"
             >
               <div className="p-5">
                 <div className="flex items-center">
@@ -177,7 +177,7 @@ const ManagerDashboard = () => {
 
       {/* Alerts */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white shadow rounded-lg border border-gray-100">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Recent Alerts
@@ -192,8 +192,8 @@ const ManagerDashboard = () => {
                       <FaExclamationTriangle
                         className={`h-5 w-5 ${
                           alert.type === "warning"
-                            ? "text-yellow-400"
-                            : "text-blue-400"
+                            ? "text-purple-600"
+                            : "text-purple-600"
                         }`}
                       />
                     </div>

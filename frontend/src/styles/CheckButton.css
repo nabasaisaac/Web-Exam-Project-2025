@@ -33,12 +33,12 @@
 }
 
 .check-button-input:checked ~ .check-button-custom {
-  background-color: #4f46e5;
-  border-color: #4f46e5;
+  background-color: #6b46c1;
+  border-color: #6b46c1;
 }
 
 .check-button-input:focus ~ .check-button-custom {
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 0 0 2px rgba(107, 70, 193, 0.2);
 }
 
 .check-button-custom:after {
@@ -66,7 +66,7 @@
 
 /* Hover effect */
 .check-button-label:hover .check-button-custom {
-  border-color: #4f46e5;
+  border-color: #6b46c1;
 }
 
 /* Disabled state */

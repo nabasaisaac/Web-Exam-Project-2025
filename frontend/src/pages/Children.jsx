@@ -99,7 +99,9 @@ const Children = () => {
     setIsLoading(true);
 
     // Validate email and phone
-    const emailValid = formData.parentEmail ? validateEmail(formData.parentEmail) : true;
+    const emailValid = formData.parentEmail
+      ? validateEmail(formData.parentEmail)
+      : true;
     const phoneValid = validatePhone(formData.parentPhone);
 
     if (!emailValid || !phoneValid) {
@@ -234,8 +236,8 @@ const Children = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Children</h1>
           <button
             onClick={() => setShowRegistrationForm(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent
-             hover:bg-indigo-700 transition cursor-pointer"
+            className="px-4 py-2 bg-pink-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent
+             hover:bg-pink-700 transition cursor-pointer"
           >
             Register New Child
           </button>
@@ -253,7 +255,7 @@ const Children = () => {
               <button
                 onClick={() => setShowRegistrationForm(false)}
                 className="absolute top-4 right-4 w-8 h-8 flex 
-                items-center justify-center rounded-full border border-indigo-600
+                items-center justify-center rounded-full border border-pink-600
                 focus:outline-none focus:border-[#4299e1] 
                  cursor-pointer hover:animate-spin hover:scale-110"
               >
@@ -365,10 +367,10 @@ const Children = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`px-4 py-2 bg-indigo-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent ${
+                    className={`px-4 py-2 bg-pink-600 text-white rounded-lg focus:outline-none focus:border-[#4299e1] border-2 border-transparent ${
                       isLoading
                         ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-indigo-700"
+                        : "hover:bg-pink-700"
                     }`}
                   >
                     {isLoading ? "Registering..." : "Register"}
@@ -384,7 +386,7 @@ const Children = () => {
           {children.length === 0 ? (
             <div className="bg-white shadow overflow-hidden sm:rounded-md p-8 text-center">
               <div className="flex flex-col items-center justify-center space-y-4">
-                <FaBaby className="text-6xl text-indigo-400" />
+                <FaBaby className="text-6xl text-pink-400" />
                 <h3 className="text-xl font-medium text-gray-900">
                   No Children Assigned to you yet!
                 </h3>
@@ -422,8 +424,8 @@ const Children = () => {
                         </div>
                         <button
                           onClick={() => handleChildDetails(child.id)}
-                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg
-                           hover:bg-indigo-100 transition flex items-center space-x-2 cursor-pointer"
+                          className="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg
+                           hover:bg-pink-100 transition flex items-center space-x-2 cursor-pointer"
                         >
                           <FaInfoCircle className="text-xl" />
                           <span>View Details</span>

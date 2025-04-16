@@ -13,19 +13,19 @@ const BabysitterDashboard = () => {
       name: "Assigned Children",
       value: "0",
       icon: FaChild,
-      color: "text-blue-500",
+      color: "text-purple-600",
     },
     {
       name: "Pending Payments",
       value: "UGX 0",
       icon: FaMoneyBillWave,
-      color: "text-yellow-500",
+      color: "text-purple-600",
     },
     {
       name: "Resolved Payments",
       value: "UGX 0",
       icon: FaCheckCircle,
-      color: "text-green-500",
+      color: "text-purple-600",
     },
   ]);
 
@@ -67,7 +67,7 @@ const BabysitterDashboard = () => {
             name: "Assigned Children",
             value: childrenCountResponse.data.count.toString(),
             icon: FaChild,
-            color: "text-blue-500",
+            color: "text-purple-600",
           },
           {
             name: "Pending Payments",
@@ -75,7 +75,7 @@ const BabysitterDashboard = () => {
               paymentsResponse.data.pending
             ).toLocaleString()}`,
             icon: FaMoneyBillWave,
-            color: "text-yellow-500",
+            color: "text-purple-600",
           },
           {
             name: "Resolved Payments",
@@ -83,7 +83,7 @@ const BabysitterDashboard = () => {
               paymentsResponse.data.completed
             ).toLocaleString()}`,
             icon: FaCheckCircle,
-            color: "text-green-500",
+            color: "text-purple-600",
           },
         ]);
 
@@ -120,7 +120,7 @@ const BabysitterDashboard = () => {
           {stats.map((item) => (
             <div
               key={item.name}
-              className="bg-white overflow-hidden shadow rounded-lg"
+              className="bg-white overflow-hidden shadow rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200"
             >
               <div className="p-5">
                 <div className="flex items-center">
@@ -146,7 +146,7 @@ const BabysitterDashboard = () => {
 
       {/* Today's Schedule */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white shadow rounded-lg border border-gray-100">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Today's Schedule
@@ -159,7 +159,7 @@ const BabysitterDashboard = () => {
                   <li key={schedule.id} className="px-4 py-4 sm:px-6">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <FaCalendarAlt className="h-5 w-5 text-indigo-500" />
+                        <FaCalendarAlt className="h-5 w-5 text-purple-600" />
                       </div>
                       <div className="ml-3">
                         <p className="text-sm font-medium text-gray-900">
